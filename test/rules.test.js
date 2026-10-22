@@ -263,3 +263,34 @@ test('이상한 명령과 입력은 무시한다', () => {
   R.step(s, 0.1, { p2: { x: NaN, y: 'a', cmds: [null, { k: 5 }, { k: 'use', a: 'nope' }] }, nobody: { x: 1 } });
   assert.equal(s.phase, 'play');
 });
+
+test('긴급 버튼: 탁자 어느 쪽에 붙어 서도 누를 수 있다', () => {
+  const tb = M.table, T = M.T, R0 = C.R + 2;
+  const spots = {
+    왼쪽: [tb.x0 * T - R0, (tb.y0 + 1.5) * T],
+    오른쪽: [(tb.x1 + 1) * T + R0, (tb.y0 + 1.5) * T],
+    위왼끝: [tb.x0 * T + 4, tb.y0 * T - R0],
+    아래오른끝: [(tb.x1 + 1) * T - 4, (tb.y1 + 1) * T + R0]
+  };
+  for (const [name, [x, y]] of Object.entries(spots)) {
+    const s = mk(5, ['p1']);
+    s.t = C.BTN_CD + 1;
+    at(s, 'p2', x, y);
+    cmd(s, 'p2', 'use', 'btn');
+    assert.equal(s.phase, 'meeting', name);
+  }
+});
+
+test('긴급 버튼: 탁자에서 멀면 안 된다', () => {
+  const s = mk(5, ['p1']);
+  s.t = C.BTN_CD + 1;
+  at(s, 'p2', M.table.x0 * M.T - 120, (M.table.y0 + 1.5) * M.T);
+  cmd(s, 'p2', 'use', 'btn');
+  assert.equal(s.phase, 'play');
+});
+
+test('OfficeMap.tableDist: 탁자 안 0, 바깥은 가장자리까지 거리', () => {
+  const tb = M.table, T = M.T;
+  assert.equal(M.tableDist((tb.x0 + 1) * T, (tb.y0 + 1) * T), 0);
+  assert.equal(M.tableDist(tb.x0 * T - 30, (tb.y0 + 1) * T), 30);
+});

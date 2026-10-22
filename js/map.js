@@ -87,6 +87,14 @@
     if (!solid(tx, ty)) return false;
     return !(tx >= TABLE.x0 && tx <= TABLE.x1 && ty >= TABLE.y0 && ty <= TABLE.y1);
   }
+  /* 탁자 가장자리까지의 거리(px). 탁자 안이면 0.
+     긴급 버튼은 탁자 위에 있어서, 버튼 한가운데까지 거리로 재면 가로로 긴 탁자의
+     옆에 선 사람은 영영 못 누른다(2026-10-22 실제 버그). 그래서 탁자 가장자리로 잰다. */
+  function tableDist(px, py) {
+    var x0 = TABLE.x0 * T, x1 = (TABLE.x1 + 1) * T, y0 = TABLE.y0 * T, y1 = (TABLE.y1 + 1) * T;
+    var dx = Math.max(x0 - px, 0, px - x1), dy = Math.max(y0 - py, 0, py - y1);
+    return Math.sqrt(dx * dx + dy * dy);
+  }
   function roomAtTile(tx, ty) {
     for (var i = 0; i < rooms.length; i++) {
       var m = rooms[i];
@@ -105,6 +113,7 @@
     solid: solid,
     opaque: opaque,
     roomAt: roomAt,
+    tableDist: tableDist,
     byId: function (id) { return Object.prototype.hasOwnProperty.call(byIdMap, id) ? byIdMap[id] : null; },
     center: function (o) { return { x: (o.tx + 0.5) * T, y: (o.ty + 0.5) * T }; },
     spawn: function (i) { var s = SPAWN[((i % 10) + 10) % 10]; return { x: (s[0] + 0.5) * T, y: (s[1] + 0.5) * T }; },

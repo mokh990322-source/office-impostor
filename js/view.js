@@ -204,6 +204,10 @@
            tasks:{id:true}, near, role, vision, sab, t } */
   function draw(f) {
     if (!ctx) return;
+    /* 창이 가려지거나 최소화된 채 열리면 크기가 0 으로 잡힌다. 매 프레임 확인해 다시 잰다. */
+    var want = Math.round((cv.clientWidth || global.innerWidth) * (global.devicePixelRatio || 1));
+    if (!cv.width || !cv.height || Math.abs(cv.width - want) > 1) resize();
+    if (!cv.width || !cv.height) return;
     var z = zoom(), W = cv.width, H = cv.height;
     var cx = W / 2 - f.me.x * z, cy = H / 2 - f.me.y * z;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

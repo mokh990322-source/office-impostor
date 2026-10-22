@@ -66,3 +66,26 @@ test('서버 과열 남은 시간과 누른 패널', () => {
   assert.equal(st.sb.r, C.REACTOR);
   assert.deepEqual(st.sb.h, [0, 0]);
 });
+
+/* Firebase 는 빈 배열·빈 객체를 저장하지 않는다. 받는 쪽은 그게 빠진 채로 받는다. */
+test('Firebase 를 거쳐 빈 목록이 사라져도 unpack 이 기본값을 채운다', () => {
+  const LN = load(['net', 'localnet'], { location: { search: '' } }).LocalNet;
+  const s = mk();
+  s.t = C.BTN_CD + 1;
+  s.players.p2.x = 28.5 * 32; s.players.p2.y = 18.5 * 32;
+  R.step(s, 0.01, { p2: { x: 0, y: 0, cmds: [{ k: 'use', a: 'btn' }] } });
+  const wire = LN.prune(JSON.parse(JSON.stringify(S.pack(s))));
+  assert.equal(wire.m.v, undefined, 'Firebase 처럼 빈 v 는 빠져야 한다');
+  assert.equal(wire.b, undefined, '빈 시체 목록도 빠진다');
+  const st = S.unpack(wire);
+  assert.deepEqual(st.m.v, []);
+  assert.deepEqual(st.b, []);
+  assert.equal(st.m.vt, null);
+  assert.ok(st.p.p1);
+});
+
+test('unpack: 비어 있거나 망가진 꾸러미도 죽지 않는다', () => {
+  assert.equal(S.unpack(null), null);
+  const st = S.unpack({ t: 3, ph: 'play' });
+  assert.deepEqual(st.p, {}); assert.deepEqual(st.b, []);
+});

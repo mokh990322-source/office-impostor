@@ -22,7 +22,7 @@
 
   var C = {
     SPEED: 170, R: 14,
-    KILL_R: 48, REPORT_R: 48, USE_R: 56, BTN_R: 80, VENT_R: 40,
+    KILL_R: 48, REPORT_R: 48, USE_R: 56, BTN_R: 40, VENT_R: 40,   // BTN_R 은 탁자 가장자리까지 거리
     KILL_CD: 25, BTN_CD: 15, BTN_PER_PLAYER: 1,
     TALK: 60, VOTE: 30, REVEAL: 4, RESULT: 10,
     SAB_FIRST: 10, SAB_CD: 30, REACTOR: 45, VENT_EXIT_DELAY: 0.3,
@@ -175,7 +175,7 @@
       return;
     }
     if (o.kind === 'button') {
-      if (!p.alive || p.btnLeft <= 0 || s.t < s.btnCdUntil || d > C.BTN_R) return;
+      if (!p.alive || p.btnLeft <= 0 || s.t < s.btnCdUntil || M.tableDist(p.x, p.y) > C.BTN_R) return;
       if (s.sab && s.sab.kind === 'reactor') return;
       p.btnLeft--;
       startMeeting(s, pid, null, ev);

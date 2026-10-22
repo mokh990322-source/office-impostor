@@ -48,5 +48,31 @@
     return o;
   }
 
-  global.Snap = { pack: pack };
+  /* 받는 쪽에서 부른다. Firebase 는 빈 배열·빈 객체를 저장하지 않아서
+     b(시체), m.v(투표한 사람), p(사람) 같은 목록이 비면 칸째 사라진 채로 온다.
+     화면 코드가 매번 "없을 수도 있다"를 챙기지 않게 여기서 한 번에 채운다. */
+  function unpack(st) {
+    if (!st || typeof st !== 'object') return null;
+    var o = {}, k;
+    for (k in st) if (Object.prototype.hasOwnProperty.call(st, k)) o[k] = st[k];
+    o.p = o.p || {};
+    o.b = o.b || [];
+    o.tp = o.tp || 0;
+    o.bc = o.bc || 0;
+    if (o.m) {
+      var m = {};
+      for (k in o.m) if (Object.prototype.hasOwnProperty.call(o.m, k)) m[k] = o.m[k];
+      m.v = m.v || [];
+      m.vt = m.vt || null;
+      m.bd = m.bd || '';
+      m.e = m.e || '';
+      m.r = m.r || 0;
+      o.m = m;
+    }
+    if (o.sb && o.sb.k === 'reactor') { o.sb = { k: 'reactor', r: o.sb.r || 0, h: o.sb.h || [0, 0] }; }
+    if (o.w) o.w = { s: o.w.s, y: o.w.y, imps: o.w.imps || [] };
+    return o;
+  }
+
+  global.Snap = { pack: pack, unpack: unpack };
 })(window);

@@ -79,7 +79,8 @@ test('킬 → 다른 직원이 걸어가 신고 → 투표로 추방 → 직원 
 test('긴급 버튼까지 걸어가서 누를 수 있다', () => {
   const s = game(5, ['p1']);
   for (let t = 0; t < C.BTN_CD + 0.1; t += DT) R.step(s, DT, {});
-  assert.ok(walk(s, 'p4', cen('btn'), C.BTN_R - 10));
+  // 탁자 바로 위 칸까지 걸어간다 (버튼은 탁자 위라 그 칸 자체엔 못 선다)
+  assert.ok(walk(s, 'p4', { x: 28.5 * M.T, y: 18.5 * M.T }, 8));
   cmd(s, 'p4', 'use', 'btn');
   assert.equal(s.phase, 'meeting');
 });

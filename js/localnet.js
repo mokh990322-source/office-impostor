@@ -20,8 +20,14 @@
 
   function segs(p) { return String(p || '').split('/').filter(function (s) { return s; }); }
 
+  /* Firebase 는 빈 배열·빈 객체를 저장하지 않는다. 로컬도 똑같이 지워야 로컬 시험이
+     온라인 버그를 잡는다(2026-10-22: 빈 투표 목록이 온라인에서만 사라져 회의 화면이 빈 칸). */
   function prune(v) {
-    if (v === null || typeof v !== 'object' || Array.isArray(v)) return v;
+    if (v === null || typeof v !== 'object') return v;
+    if (Array.isArray(v)) {
+      if (!v.length) return null;
+      return v.map(function (x) { var c = prune(x); return c === undefined ? null : c; });
+    }
     var out = {}, any = false;
     for (var k in v) {
       if (!Object.prototype.hasOwnProperty.call(v, k)) continue;

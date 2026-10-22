@@ -156,7 +156,7 @@
     var st = S.room.st;
     if (st && st.t !== S.lastTick) {
       S.lastTick = st.t; S.lastChangeMs = nowMs();
-      if (!isHost()) { S.st = st; if (S.buf) S.buf.push(performance.now() / 1000, st); }
+      if (!isHost()) { var us = Snap.unpack(st); S.st = us; if (S.buf) S.buf.push(performance.now() / 1000, us); }
     }
     if (!st) S.lastTick = null;
     if (isHost() && S.state) readInputs();
@@ -452,6 +452,9 @@
     if (!st) { View.clear(); Hud.render({ wait: '판을 준비하는 중…' }); return; }
     var myP = st.p[S.pid];
     if (!myP) {
+      /* 판에서 빠졌다(나갔다 처리됨). 회의·미니게임 창이 열려 있으면 얼어붙은 채 남으니 닫는다. */
+      if (global.Meeting.isOpen()) global.Meeting.close();
+      global.Tasks.close();
       View.clear();
       Hud.render({ wait: st.ph === 'result' ? '판이 끝났어요. 곧 대기실로 돌아가요.' : '게임이 진행 중이에요. 다음 판부터 함께해요.' });
       return;
@@ -515,7 +518,7 @@
     /* 가까운 물건 */
     var near = null;
     function consider(o, range, label, on) {
-      var c = M.center(o), d = dist(S.me, c);
+      var c = M.center(o), d = o.kind === 'button' ? M.tableDist(S.me.x, S.me.y) : dist(S.me, c);
       if (d <= range && (!near || d < near.d)) near = { id: o.id, kind: o.kind, type: o.type, label: label, on: on, d: d };
     }
     var myTasks = {};
@@ -567,12 +570,13 @@
     }
     S.wasAlive = alive;
 
-    /* 그리기 */
-    View.draw({
+    /* 그리기. 그리기가 실패해도(캔버스 크기 문제 등) 아래 HUD·회의 화면은 계속 돌아야 한다.
+       한 번 여기서 던지면 회의가 시작돼도 회의 화면이 영영 안 열린다. */
+    try { View.draw({
       me: S.me, alive: alive, role: role, vision: vision, sab: sb, near: near && near.id, tasks: myTasks, t: nowS,
       bodies: bodies,
       players: others.concat([{ pid: S.pid, self: true, x: S.me.x, y: S.me.y, alive: alive, vent: inVent, color: colorOf(S.pid), name: nameOf(S.pid), red: role === 'imp' }])
-    });
+    }); } catch (e) { if (global.console) console.error(e); }
 
     var taskList = box ? box.t.map(function (id) {
       var o = M.byId(id), k = global.Tasks.kinds[o.type];
