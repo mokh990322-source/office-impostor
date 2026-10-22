@@ -1,0 +1,326 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert');
+const { load } = require('../testlib/load');
+
+function R() { return load('room').Room; }
+
+/* 지금이 10000ms 라고 두고, seen 을 '몇 초 전'으로 적는다 */
+const NOW = 10000;
+function who(spec) {
+  const o = {};
+  for (const k in spec) {
+    o[k] = { name: k, join: spec[k].join, seen: NOW - spec[k].agoSec * 1000 };
+  }
+  return o;
+}
+
+test('상수가 말이 되는 범위다', () => {
+  const r = R();
+  assert.ok(r.HOST_TIMEOUT >= 2 && r.HOST_TIMEOUT <= 6, '너무 짧으면 렉에 승계가 튄다');
+  assert.ok(r.CLAIM_WAIT > 0 && r.CLAIM_WAIT < r.HOST_TIMEOUT);
+  assert.ok(r.SEEN_TIMEOUT > r.HOST_TIMEOUT, '호스트 판정보다 느슨해야 한다');
+});
+
+test('alive 는 최근에 소식 있는 사람만, 입장 순서로 준다', () => {
+  const r = R();
+  const w = who({ c: { join: 3, agoSec: 1 }, a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 99 } });
+  assert.deepStrictEqual(r.alive(w, NOW), ['a', 'c']);
+});
+
+test('alive 는 빈 목록도 견딘다', () => {
+  const r = R();
+  assert.deepStrictEqual(r.alive(null, NOW), []);
+  assert.deepStrictEqual(r.alive({}, NOW), []);
+});
+
+test('hostDead 는 틱이 멈춘 지 오래면 참', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  assert.strictEqual(r.hostDead(50, NOW - ms - 500, NOW), true);
+  assert.strictEqual(r.hostDead(50, NOW - 100, NOW), false);
+});
+
+test('hostDead 는 아직 스냅샷을 한 번도 못 받았으면 거짓', () => {
+  const r = R();
+  assert.strictEqual(r.hostDead(null, NOW - 99999, NOW), false, '방금 들어온 사람이 승계하면 안 된다');
+});
+
+/* ---------- shouldClaim ---------- */
+
+function opts(over) {
+  const base = {
+    me: 'b', host: 'a',
+    who: who({ a: { join: 1, agoSec: 99 }, b: { join: 2, agoSec: 1 }, c: { join: 3, agoSec: 1 } }),
+    lastTick: 50, lastChangeMs: NOW - 5000, nowMs: NOW, claimedAtMs: 0
+  };
+  return Object.assign(base, over || {});
+}
+
+test('내가 이미 호스트면 아무것도 안 한다', () => {
+  const r = R();
+  assert.strictEqual(r.shouldClaim(opts({ me: 'a', host: 'a', lastChangeMs: NOW })), 'none');
+});
+
+test('호스트가 살아 있으면 아무것도 안 한다', () => {
+  const r = R();
+  assert.strictEqual(r.shouldClaim(opts({ lastChangeMs: NOW - 100 })), 'none');
+});
+
+test('호스트가 죽고 내가 다음 차례면 나선다', () => {
+  const r = R();
+  assert.strictEqual(r.shouldClaim(opts()), 'claim');
+});
+
+test('호스트가 죽어도 내 차례가 아니면 기다린다', () => {
+  const r = R();
+  assert.strictEqual(r.shouldClaim(opts({ me: 'c' })), 'none');
+});
+
+test('나선 직후에는 관망한다', () => {
+  const r = R();
+  const o = opts({ claimedAtMs: NOW - 200 });
+  assert.strictEqual(r.shouldClaim(o), 'wait');
+});
+
+test('관망이 끝나고 내가 호스트가 됐으면 끝', () => {
+  const r = R();
+  const o = opts({ me: 'b', host: 'b', claimedAtMs: NOW - r.CLAIM_WAIT * 1000 - 100 });
+  assert.strictEqual(r.shouldClaim(o), 'none');
+});
+
+test('관망이 끝났는데 남이 호스트가 됐으면 물러난다', () => {
+  const r = R();
+  const o = opts({ me: 'b', host: 'c', claimedAtMs: NOW - r.CLAIM_WAIT * 1000 - 100 });
+  assert.strictEqual(r.shouldClaim(o), 'yield');
+});
+
+test('호스트가 목록에서 아예 사라졌으면 다음 차례가 나선다', () => {
+  const r = R();
+  const o = opts({
+    host: '없는사람',
+    who: who({ b: { join: 2, agoSec: 1 }, c: { join: 3, agoSec: 1 } })
+  });
+  assert.strictEqual(r.shouldClaim(o), 'claim');
+});
+
+test('나 혼자 남았으면 내가 호스트가 된다', () => {
+  const r = R();
+  const o = opts({ me: 'b', host: 'a', who: who({ b: { join: 2, agoSec: 1 } }) });
+  assert.strictEqual(r.shouldClaim(o), 'claim');
+});
+
+test('망가진 인자에도 안 죽는다', () => {
+  const r = R();
+  for (const bad of [null, undefined, {}, { me: 'b' }]) {
+    assert.ok(['none', 'claim', 'wait', 'yield'].indexOf(r.shouldClaim(bad)) >= 0);
+  }
+});
+
+/* ========== 호스트 failover fix: dead host 를 ranking 에서 제외 ========== */
+
+test('호스트가 죽어도 heartbeat 가 신선하면, 다음 순번이 나선다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  // 호스트 a는 join 1 (가장 빠름), b는 join 2, c는 join 3
+  // 모두 heartbeat는 3초 전 (SEEN_TIMEOUT 10초보다 신선)
+  // 틱은 3.5초 전부터 안 움직임 (HOST_TIMEOUT 3초 초과)
+  const w = who({ a: { join: 1, agoSec: 3 }, b: { join: 2, agoSec: 3 }, c: { join: 3, agoSec: 3 } });
+  const o = {
+    me: 'a', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500, nowMs: NOW, claimedAtMs: 0
+  };
+
+  // a는 이미 호스트라서 none
+  assert.strictEqual(r.shouldClaim(o), 'none');
+
+  // b는 a 다음 순번이고 a가 죽었으니 b가 claim
+  assert.strictEqual(r.shouldClaim(Object.assign({}, o, { me: 'b', host: 'a' })), 'claim');
+
+  // c는 아직 b보다 늦으니 none
+  assert.strictEqual(r.shouldClaim(Object.assign({}, o, { me: 'c', host: 'a' })), 'none');
+});
+
+test('모든 non-host 플레이어가 같은 다음 승계자를 선택한다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  const w = who({ a: { join: 1, agoSec: 3 }, b: { join: 2, agoSec: 3 }, c: { join: 3, agoSec: 3 } });
+
+  // a가 죽었을 때 모두가 b를 다음 호스트로 인정해야 한다
+  const base = {
+    host: 'a', who: w, lastTick: 50, lastChangeMs: NOW - ms - 500, nowMs: NOW, claimedAtMs: 0
+  };
+
+  // a: 이미 호스트 → none
+  assert.strictEqual(r.shouldClaim(Object.assign({}, base, { me: 'a' })), 'none');
+
+  // b: 가장 빠른 생존자 → claim
+  assert.strictEqual(r.shouldClaim(Object.assign({}, base, { me: 'b' })), 'claim');
+
+  // c: b보다 늦음 → none (b가 claim 했으니 c는 기다림)
+  assert.strictEqual(r.shouldClaim(Object.assign({}, base, { me: 'c' })), 'none');
+});
+
+test('호스트 failover 는 SEEN_TIMEOUT 에 종속되지 않는다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  // 호스트 a의 heartbeat는 1초 전 (매우 신선)
+  // 하지만 틱은 3.5초 전부터 안 움직임 (죽음)
+  // b의 heartbeat는 1초 전
+  const w = who({ a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 1 } });
+  const o = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500, nowMs: NOW, claimedAtMs: 0
+  };
+
+  // a의 heartbeat 가 1초 전이라도, 틱이 죽었으니 b가 claim
+  assert.strictEqual(r.shouldClaim(o), 'claim');
+});
+
+/* ========== I3: 내 스트림이 죽은 것과 호스트가 죽은 것을 구분한다 ========== */
+
+test('호스트는 멀쩡한데 내 스트림이 끊겼으면 나서지 않는다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  // 호스트는 heartbeat 도 최근이고(1초 전), 실제로는 계속 틱을 돌리는 중이라고 하자.
+  // 하지만 이 클라이언트는 스트림이 3.5초째 끊겨서 lastChangeMs 도 lastEventMs 도
+  // 그만큼 낡았다 — 겉보기엔 "호스트가 죽었다"와 똑같이 보인다.
+  const w = who({ a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 1 } });
+  const o = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500, lastEventMs: NOW - ms - 500,
+    nowMs: NOW, claimedAtMs: 0
+  };
+  assert.strictEqual(r.shouldClaim(o), 'none', '내가 못 듣는 것이지 호스트가 죽은 게 아니다');
+});
+
+test('호스트가 진짜 죽었고 내 스트림은 멀쩡하면 여전히 나선다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  const w = who({ a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 1 } });
+  const o = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500, lastEventMs: NOW - 100,   // 방금도 뭔가 받았다
+    nowMs: NOW, claimedAtMs: 0
+  };
+  assert.strictEqual(r.shouldClaim(o), 'claim');
+});
+
+test('lastEventMs 가 없으면(옛 호출부) 예전처럼 동작한다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  const w = who({ a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 1 } });
+  const o = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500,
+    nowMs: NOW, claimedAtMs: 0
+  };
+  assert.strictEqual(r.shouldClaim(o), 'claim', 'lastEventMs 없다고 승계가 막히면 안 된다');
+});
+
+/* 이 코드베이스는 "아직 없음"을 0 으로 쓴다(claimedAtMs: 0, w.seen || 0).
+   조립 코드가 var lastEventAt = 0 으로 시작하는 것이 가장 자연스러운데,
+   0 을 실제 시각으로 읽으면 now - 0 이 항상 HOST_TIMEOUT 을 넘어 그 방은
+   호스트가 죽어도 영원히 승계되지 않는다. 생략과 똑같이 굴어야 한다. */
+test('lastEventMs 가 0 이면 생략과 똑같이 동작한다', () => {
+  const r = R();
+  const ms = r.HOST_TIMEOUT * 1000;
+  const w = who({ a: { join: 1, agoSec: 1 }, b: { join: 2, agoSec: 1 } });
+  const base = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - ms - 500,
+    nowMs: NOW, claimedAtMs: 0
+  };
+  const omitted = r.shouldClaim(base);
+  const zero = r.shouldClaim(Object.assign({}, base, { lastEventMs: 0 }));
+  assert.strictEqual(omitted, 'claim');
+  assert.strictEqual(zero, omitted, 'lastEventMs: 0 이 승계를 영영 막으면 안 된다');
+});
+
+test('틱이 흐르고 있으면 seen 이 낡아도 호스트는 산다', () => {
+  const r = R();
+  // 호스트 a의 heartbeat는 99초 전 (완전히 낡음)
+  // 하지만 틱은 100ms 전 (최근)
+  const w = who({ a: { join: 1, agoSec: 99 }, b: { join: 2, agoSec: 1 }, c: { join: 3, agoSec: 1 } });
+  const o = {
+    me: 'b', host: 'a',
+    who: w,
+    lastTick: 50, lastChangeMs: NOW - 100, nowMs: NOW, claimedAtMs: 0
+  };
+
+  // 틱이 최근이니까 a는 살아 있다 (heartbeat 무시)
+  assert.strictEqual(r.shouldClaim(o), 'none');
+
+  // c도 마찬가지
+  assert.strictEqual(r.shouldClaim(Object.assign({}, o, { me: 'c' })), 'none');
+});
+
+
+/* ---------- 시계가 어긋나도 사람이 안 사라진다 ----------
+
+   who[pid].seen 은 그 값을 쓴 PC 의 Date.now() 다. 그걸 읽는 쪽의
+   Date.now() 와 빼면 두 PC 의 시계 차이가 그대로 "얼마나 조용했나"로
+   둔갑한다. 사내 PC 끼리 10초쯤 어긋나는 건 흔하고, 그러면 그 사람은
+   2초마다 심박을 써도 영원히 죽은 것으로 보여서 호스트가 시뮬레이션에서
+   빼 버린다 — 모두의 화면에서 그 사람이 사라진다.
+
+   그래서 "그 값이 바뀌는 것을 내가 봤나"(seenAt, 내 시계)로 본다. */
+
+test('시계가 15초 느린 사람도 살아 있는 것으로 본다', () => {
+  const Rm = R();
+  const now = 1000000;
+  const who = {
+    host:  { name: '방장', join: now - 60000, seen: now },
+    guest: { name: '손님', join: now - 30000, seen: now - 15000 }  // PC 시계가 느리다
+  };
+  /* 둘 다 방금 심박이 바뀌는 것을 봤다 (내 시계 기준) */
+  const seenAt = { host: now, guest: now };
+  assert.deepStrictEqual(Rm.alive(who, now, seenAt), ['host', 'guest'],
+    '남의 시계 숫자로 살았나 죽었나를 재고 있다');
+});
+
+test('진짜로 조용해진 사람은 여전히 빠진다', () => {
+  const Rm = R();
+  const now = 1000000;
+  const who = {
+    host:  { name: '방장', join: 1, seen: now },
+    gone:  { name: '나간사람', join: 2, seen: now }   // seen 값은 최신처럼 보이지만
+  };
+  /* 내가 그 값이 바뀌는 것을 마지막으로 본 건 20초 전이다 */
+  const seenAt = { host: now, gone: now - 20000 };
+  assert.deepStrictEqual(Rm.alive(who, now, seenAt), ['host'],
+    '20초간 심박이 안 바뀌었는데 살아 있다고 본다');
+});
+
+test('방금 들어온 사람은 바로 살아 있는 것으로 본다', () => {
+  const Rm = R();
+  const now = 1000000;
+  const who = { host: { join: 1, seen: 0 }, fresh: { join: 2, seen: 0 } };
+  const seenAt = { host: now, fresh: now };
+  assert.strictEqual(Rm.alive(who, now, seenAt).length, 2,
+    '방금 들어온 사람을 조용하다고 내쫓으면 아무도 못 들어온다');
+});
+
+test('shouldClaim 도 같은 자를 쓴다', () => {
+  const Rm = R();
+  const now = 1000000;
+  /* 호스트 PC 시계가 30초 빨라서 seen 이 미래로 찍혀 있다.
+     그래도 살아 있는 것으로 봐야 멀쩡한 호스트를 안 밀어낸다. */
+  const who = {
+    hostPid: { join: 1, seen: now + 30000 },
+    me:      { join: 2, seen: now }
+  };
+  const seenAt = { hostPid: now, me: now };
+  const act = Rm.shouldClaim({
+    me: 'me', host: 'hostPid', who: who, seenAt: seenAt,
+    lastTick: null, lastChangeMs: now, lastEventMs: now,
+    nowMs: now, claimedAtMs: 0
+  });
+  assert.strictEqual(act, 'none', '멀쩡한 호스트를 밀어내려 한다');
+});
