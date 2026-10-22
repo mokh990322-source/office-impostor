@@ -22,9 +22,9 @@
     { name: '치이카와',       hex: '#ab47bc', face: 7 },
     { name: '누렁이',         hex: '#ec407a', face: 8 },
     /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
-       이름은 사진을 받을 때 같이 바꾼다. */
-    { name: '새 동료 1',      hex: '#8d6e63', face: 9 },
-    { name: '새 동료 2',      hex: '#c0ca33', face: 10 }
+       사진은 나중에 받기로 함(2026-10-22). */
+    { name: '견현호',         hex: '#8d6e63', face: 9 },
+    { name: '김선호',         hex: '#c0ca33', face: 10 }
   ];
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
