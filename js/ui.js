@@ -8,15 +8,60 @@
 (function (global) {
   'use strict';
 
+  /* 캐릭터 = 모코파크의 회사분들 8명 + 얼굴 없는 신입 2명(10인 판용).
+     번호(0~9)는 Firebase who/<pid>/color 에 그대로 실린다. 순서를 바꾸면
+     규칙·저장 값이 어긋나니 뒤에 붙이기만 할 것.
+     이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
   var COLORS = [
-    { name: '빨강', hex: '#e5383b' }, { name: '파랑', hex: '#3a6ff7' },
-    { name: '초록', hex: '#2fb45a' }, { name: '분홍', hex: '#f272c6' },
-    { name: '주황', hex: '#f48c06' }, { name: '노랑', hex: '#f7d02c' },
-    { name: '검정', hex: '#3f474e' }, { name: '흰색', hex: '#e8ecf3' },
-    { name: '보라', hex: '#8b4ee8' }, { name: '청록', hex: '#2ec4c4' }
+    { name: '숭한 라이언',    hex: '#ff5252', face: 1 },
+    { name: '박팀장님',       hex: '#ffa726', face: 2 },
+    { name: '송마라톤',       hex: '#ffee58', face: 3 },
+    { name: '내가 진짜 주희', hex: '#66bb6a', face: 4 },
+    { name: '서론 머스크',    hex: '#26c6da', face: 5 },
+    { name: '모탄소년단',     hex: '#5c6bc0', face: 6 },
+    { name: '치이카와',       hex: '#ab47bc', face: 7 },
+    { name: '누렁이',         hex: '#ec407a', face: 8 },
+    { name: '신입 (회색)',    hex: '#8a93a8' },
+    { name: '신입 (흰색)',    hex: '#e8ecf3' }
   ];
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
+
+  /* ── 실사 얼굴 ────────────────────────────────────────────
+     img/face/<번호>.jpg 를 26px 로 줄여 두고 픽셀 그대로 키워 그린다
+     (모코파크·퇴근의 계단과 같은 농담). 사진이 없거나 못 읽으면 그냥
+     고글을 그린다. 사진 하나 빠졌다고 게임이 죽으면 안 된다. */
+  var FACE_PX = 26, faces = {}, faceListeners = [];
+  (function loadFaces() {
+    if (typeof global.Image !== 'function') return;          // Node 시험
+    COLORS.forEach(function (c, i) {
+      if (!c.face) return;
+      var im = new global.Image();
+      im.onload = function () {
+        if (!im.naturalWidth) return;
+        faces[i] = { img: im, small: null };
+        faceListeners.forEach(function (fn) { try { fn(i); } catch (e) { /* 무시 */ } });
+      };
+      im.src = 'img/face/' + c.face + '.jpg';
+    });
+  })();
+
+  /* 인물 사진은 얼굴이 위쪽에 온다. 높이의 38% 를 얼굴 중심으로 보고 자른다(모코파크와 같음). */
+  function faceCanvas(i) {
+    var f = faces[i];
+    if (!f) return null;
+    if (f.small) return f.small;
+    var cv = document.createElement('canvas');
+    cv.width = FACE_PX; cv.height = FACE_PX;
+    var iw = f.img.naturalWidth, ih = f.img.naturalHeight;
+    var sq = Math.min(iw, ih) * 0.78, sx = (iw - sq) / 2, sy = ih * 0.38 - sq / 2;
+    if (sy < 0) sy = 0;
+    if (sy + sq > ih) sy = ih - sq;
+    cv.getContext('2d').drawImage(f.img, sx, sy, sq, sq, 0, 0, FACE_PX, FACE_PX);
+    f.small = cv;
+    return cv;
+  }
+  function onFaceLoad(fn) { faceListeners.push(fn); }
 
   function shade(h, k) {
     var n = parseInt(h.slice(1), 16);
@@ -103,11 +148,26 @@
       ctx.fillStyle = c;
       rr(ctx, -11, -34, 22, 29, 10); ctx.fill(); ctx.stroke();
     }
-    /* 고글 */
-    ctx.fillStyle = '#9fdcf3';
-    rr(ctx, -2, -29, 15, 9, 4.5); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    rr(ctx, 3, -27, 6, 3, 1.5); ctx.fill();
+    var fc = faceCanvas(color);
+    if (fc) {
+      /* 고글 자리에 얼굴 사진. 몸을 뒤집어도 얼굴은 뒤집지 않는다(사진이 거울상이 되면 어색하다). */
+      ctx.fillStyle = '#9fdcf3';
+      rr(ctx, -5, -33, 19, 19, 6); ctx.fill(); ctx.stroke();
+      ctx.save();
+      rr(ctx, -4, -32, 17, 17, 5); ctx.clip();
+      if (o.flip) { ctx.translate(4.5, 0); ctx.scale(-1, 1); ctx.translate(-4.5, 0); }
+      var sm = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(fc, -4, -32, 17, 17);
+      ctx.imageSmoothingEnabled = sm;
+      ctx.restore();
+    } else {
+      /* 고글 */
+      ctx.fillStyle = '#9fdcf3';
+      rr(ctx, -2, -29, 15, 9, 4.5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      rr(ctx, 3, -27, 6, 3, 1.5); ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -147,6 +207,7 @@
 
   global.UI = {
     COLORS: COLORS, hex: hex, shade: shade, h: h, clear: clear, toast: toast,
+    onFaceLoad: onFaceLoad, hasFace: function (i) { return !!faces[i]; },
     rr: rr, drawBean: drawBean, drawBody: drawBody, beanIcon: beanIcon
   };
 })(window);

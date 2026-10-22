@@ -684,6 +684,7 @@
   function boot() {
     screenEl = $('screen'); hudEl = $('hud'); layerEl = $('layer'); netEl = $('net'); canvas = $('world');
     View.init(canvas);
+    UI.onFaceLoad(function () { if (S.screen === 'lobby') { S.lobbyKey = ''; renderLobby(); } });
     if (LOCAL) setNet('', '로컬 시험 모드'); else setNet('retry', '연결 확인 중');
     global.addEventListener('keydown', onKeyDown);
     global.addEventListener('keyup', onKeyUp);

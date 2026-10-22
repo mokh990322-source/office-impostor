@@ -58,12 +58,13 @@
       ]);
     }));
 
-    var colors = h('div', { class: 'colors' }, UI.COLORS.map(function (c, i) {
+    var colors = h('div', { class: 'chars' }, UI.COLORS.map(function (c, i) {
       var used = v.used.indexOf(i) >= 0 && v.myColor !== i;
       return h('button', {
-        class: v.myColor === i ? 'sel' : '', title: c.name, disabled: used,
-        style: { background: c.hex }, onclick: function () { o.onColor(i); }
-      });
+        class: v.myColor === i ? 'sel' : '', title: used ? c.name + ' (다른 사람이 골랐어요)' : c.name, disabled: used,
+        style: { borderColor: v.myColor === i ? c.hex : 'transparent' },
+        onclick: function () { o.onColor(i); }
+      }, [UI.beanIcon(i, 44), h('span', { text: c.name })]);
     }));
 
     var impSeg = h('div', { class: 'seg' }, [1, 2].map(function (n) {
@@ -86,7 +87,7 @@
         ]),
         h('div', { class: 'label', text: '모인 사람 ' + v.who.length + '명 (4~10명)' }),
         list,
-        h('div', { class: 'label', text: '내 색' }),
+        h('div', { class: 'label', text: '내 캐릭터' }),
         colors,
         h('div', { class: 'label', text: '임포스터 수' + (v.isHost ? '' : ' (방장이 정해요)') }),
         impSeg,
