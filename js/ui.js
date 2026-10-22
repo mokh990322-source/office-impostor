@@ -8,7 +8,7 @@
 (function (global) {
   'use strict';
 
-  /* 캐릭터 = 모코파크의 회사분들 8명 + 얼굴 없는 신입 2명(10인 판용).
+  /* 캐릭터 = 모코파크의 회사분들 8명 + 새로 오신 두 분(9·10번).
      번호(0~9)는 Firebase who/<pid>/color 에 그대로 실린다. 순서를 바꾸면
      규칙·저장 값이 어긋나니 뒤에 붙이기만 할 것.
      이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
@@ -21,8 +21,10 @@
     { name: '모탄소년단',     hex: '#5c6bc0', face: 6 },
     { name: '치이카와',       hex: '#ab47bc', face: 7 },
     { name: '누렁이',         hex: '#ec407a', face: 8 },
-    { name: '신입 (회색)',    hex: '#8a93a8' },
-    { name: '신입 (흰색)',    hex: '#e8ecf3' }
+    /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
+       이름은 사진을 받을 때 같이 바꾼다. */
+    { name: '새 동료 1',      hex: '#8d6e63', face: 9 },
+    { name: '새 동료 2',      hex: '#c0ca33', face: 10 }
   ];
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
