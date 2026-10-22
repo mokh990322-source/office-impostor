@@ -152,7 +152,7 @@
 | `js/game.js` | 위 부품을 잇는다. 방장 루프와 참가자 루프 |
 | `test/*.test.js` | `node --test` |
 | `docs/firebase-rules-crew.json` | Firebase 콘솔에 붙일 `crew/` 규칙 |
-| `게임 실행.bat` | 로컬 서버(포트 8896) 띄우고 브라우저 열기. cp949로 저장 |
+| `게임 실행.bat` | 로컬 서버(포트 8897) 띄우고 브라우저 열기. cp949로 저장 |
 | `깃허브업데이트.bat` | 커밋 + 푸시. cp949로 저장 |
 
 ### Firebase 데이터 (`crew/<방코드>/`)

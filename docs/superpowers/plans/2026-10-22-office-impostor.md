@@ -2,6 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **진행 상태 (2026-10-22):** Task 1~13 완료, 시험 152개 통과, 브라우저로 대기실·게임·미니게임 6종·회의·추방·결과·환풍구·사보타주·유령 확인. Task 14 는 Step 3·4(README, bat)만 끝. Step 1(Firebase 규칙 게시)·5(공개 저장소 만들기)는 사용자 몫·허락 대기.
+> 계획과 달라진 점: 포트 8897(8896은 모코파크 미리보기가 씀), 긴급 버튼 거리 80px(72면 탁자 옆에서 닿지 않음), 탁자는 시야를 막지 않음(`OfficeMap.opaque`), 방장 계산은 화면 갱신과 떼어 워커 타이머로도 돎, `js/ui.js`(공통 그리기) 추가, `혼자 시험하기.bat` 추가.
+
 **Goal:** 회사 동료 4~10명이 브라우저로 방 코드를 쳐서 하는 사무실 테마 어몽어스.
 
 **Architecture:** 모코파크와 같은 호스트 권위 구조. 방장 브라우저가 `rules.js`(순수 규칙)로 판을 계산해 Firebase `crew/<코드>/st`에 10Hz로 올리고, 참가자는 `in/<pid>`에 입력·명령만 쓴다. 역할은 ECDH+AES-GCM으로 본인만 풀게 `sec/<pid>`에 둔다. Firebase 없이도 개발할 수 있게 같은 API의 `LocalNet`(BroadcastChannel)과 방장 탭 안에서 도는 시험용 봇(`?bots=N`)을 둔다.
@@ -104,7 +107,7 @@
 - Produces: `testlib/load.js` → `load(names: string[], win?: object) → win`. `names`는 `js/` 기준 경로(`'tasks/coffee'` 가능).
 - Produces: `window.Net`, `window.Room`, `window.Interp` (모코파크와 동일 API)
 
-- [ ] **Step 1: 파일 복사**
+- [x] **Step 1: 파일 복사**
 
 ```bash
 cd /c/Users/NAU/Desktop/OfficeImpostor
@@ -113,7 +116,7 @@ cp ../Overworked/js/net.js ../Overworked/js/room.js ../Overworked/js/interp.js j
 cp ../Overworked/test/net-apply.test.js ../Overworked/test/room-code.test.js ../Overworked/test/room-host.test.js ../Overworked/test/interp.test.js test/
 ```
 
-- [ ] **Step 2: `testlib/load.js` 작성**
+- [x] **Step 2: `testlib/load.js` 작성**
 
 ```js
 'use strict';
@@ -134,7 +137,7 @@ function load(names, win) {
 module.exports = { load };
 ```
 
-- [ ] **Step 3: `js/cloud-config.js`**
+- [x] **Step 3: `js/cloud-config.js`**
 
 ```js
 /* ============================================================
@@ -150,7 +153,7 @@ module.exports = { load };
 })(window);
 ```
 
-- [ ] **Step 4: `.gitignore`**
+- [x] **Step 4: `.gitignore`**
 
 ```
 node_modules/
@@ -158,8 +161,8 @@ node_modules/
 shots/
 ```
 
-- [ ] **Step 5: 시험** — Run: `node --test` / Expected: 복사한 4개 파일 시험 전부 통과.
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "뼈대: 모코파크 접속 부품 가져오기"`
+- [x] **Step 5: 시험** — Run: `node --test` / Expected: 복사한 4개 파일 시험 전부 통과.
+- [x] **Step 6: Commit** — `git add -A && git commit -m "뼈대: 모코파크 접속 부품 가져오기"`
 
 ---
 
@@ -172,7 +175,7 @@ shots/
 - Produces `OfficeMap`: `T=32, W=58, H=40`, `solid(tx,ty)→bool` (범위 밖 true), `rooms: [{id,name,x0,y0,x1,y1}]`, `objects: [{id,kind,type?,tx,ty,room}]`, `byId(id)→obj|null`, `center(obj)→{x,y}` (칸 중심 px), `roomAt(px,py)→name|''`, `spawn(i)→{x,y}` (i는 10으로 나눈 나머지), `ventPair(id)→id`, `stationIds()→string[]`
 - Produces `Geom`: `hits(map,x,y,r)→bool`, `move(map,x,y,dx,dy,r)→{x,y}`, `ray(map,x,y,ang,max)→거리`, `vision(map,x,y,radius,n?)→[[x,y],...]`, `clear(map,ax,ay,bx,by)→bool`, `canSee(map,ax,ay,bx,by,radius)→bool`
 
-- [ ] **Step 1: 시험 작성 `test/map.test.js`**
+- [x] **Step 1: 시험 작성 `test/map.test.js`**
 
 ```js
 'use strict';
@@ -253,9 +256,9 @@ test('roomAt 은 방 안에서 방 이름, 복도에서 빈 문자열', () => {
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/map.test.js` / Expected: FAIL (`map.js` 없음)
+- [x] **Step 2: Run** `node --test test/map.test.js` / Expected: FAIL (`map.js` 없음)
 
-- [ ] **Step 3: `js/map.js`**
+- [x] **Step 3: `js/map.js`**
 
 ```js
 /* ============================================================
@@ -367,9 +370,9 @@ test('roomAt 은 방 안에서 방 이름, 복도에서 빈 문자열', () => {
 })(window);
 ```
 
-- [ ] **Step 4: Run** `node --test test/map.test.js` / Expected: PASS
+- [x] **Step 4: Run** `node --test test/map.test.js` / Expected: PASS
 
-- [ ] **Step 5: 시험 작성 `test/geom.test.js`**
+- [x] **Step 5: 시험 작성 `test/geom.test.js`**
 
 ```js
 'use strict';
@@ -415,9 +418,9 @@ test('반경 밖은 안 보인다', () => {
 });
 ```
 
-- [ ] **Step 6: Run** `node --test test/geom.test.js` / Expected: FAIL
+- [x] **Step 6: Run** `node --test test/geom.test.js` / Expected: FAIL
 
-- [ ] **Step 7: `js/geom.js`**
+- [x] **Step 7: `js/geom.js`**
 
 ```js
 /* ============================================================
@@ -501,8 +504,8 @@ test('반경 밖은 안 보인다', () => {
 })(window);
 ```
 
-- [ ] **Step 8: Run** `node --test` / Expected: 전부 PASS
-- [ ] **Step 9: Commit** — `git add -A && git commit -m "맵과 충돌·시야"`
+- [x] **Step 8: Run** `node --test` / Expected: 전부 PASS
+- [x] **Step 9: Commit** — `git add -A && git commit -m "맵과 충돌·시야"`
 
 ---
 
@@ -529,7 +532,7 @@ test('반경 밖은 안 보인다', () => {
 - 명령 `k`: `use`(a=물건 id), `kill`(a=pid), `report`(a=시체 pid), `vote`(a=pid|'skip'), `sab`(a='lights'|'reactor'), `hold`(a='p1'|'p2'|'')
 - 이벤트 `type`: `task, kill, meeting, vote, voted, reveal, resume, win, end, vent, ventmove, unvent, sab, fixed`
 
-- [ ] **Step 1: 시험 작성 `test/rules.test.js`**
+- [x] **Step 1: 시험 작성 `test/rules.test.js`**
 
 ```js
 'use strict';
@@ -792,9 +795,9 @@ test('이상한 명령과 입력은 무시한다', () => {
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/rules.test.js` / Expected: FAIL (`rules.js` 없음)
+- [x] **Step 2: Run** `node --test test/rules.test.js` / Expected: FAIL (`rules.js` 없음)
 
-- [ ] **Step 3: `js/rules.js`** (Task 4의 환풍구·사보타주·유령 규칙까지 이 파일에 함께 들어간다. 시험은 Task 4에서 추가)
+- [x] **Step 3: `js/rules.js`** (Task 4의 환풍구·사보타주·유령 규칙까지 이 파일에 함께 들어간다. 시험은 Task 4에서 추가)
 
 ```js
 /* ============================================================
@@ -1145,8 +1148,8 @@ test('이상한 명령과 입력은 무시한다', () => {
 })(window);
 ```
 
-- [ ] **Step 4: Run** `node --test test/rules.test.js` / Expected: PASS
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "게임 규칙: 이동·임무·킬·신고·회의·투표·승리"`
+- [x] **Step 4: Run** `node --test test/rules.test.js` / Expected: PASS
+- [x] **Step 5: Commit** — `git add -A && git commit -m "게임 규칙: 이동·임무·킬·신고·회의·투표·승리"`
 
 ---
 
@@ -1158,7 +1161,7 @@ test('이상한 명령과 입력은 무시한다', () => {
 
 **Interfaces:** Task 3의 `Rules` 그대로.
 
-- [ ] **Step 1: 시험 작성**
+- [x] **Step 1: 시험 작성**
 
 ```js
 'use strict';
@@ -1331,8 +1334,8 @@ test('추방된 임포스터 유령도 사보타주는 건다, 킬은 못 한다
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/rules-extra.test.js` / Expected: PASS (규칙은 Task 3에서 이미 넣었다). 실패하면 `js/rules.js`의 해당 함수만 고치고 다시 실행.
-- [ ] **Step 3: Commit** — `git add -A && git commit -m "환풍구·사보타주·유령 규칙 시험"`
+- [x] **Step 2: Run** `node --test test/rules-extra.test.js` / Expected: PASS (규칙은 Task 3에서 이미 넣었다). 실패하면 `js/rules.js`의 해당 함수만 고치고 다시 실행.
+- [x] **Step 3: Commit** — `git add -A && git commit -m "환풍구·사보타주·유령 규칙 시험"`
 
 ---
 
@@ -1355,7 +1358,7 @@ test('추방된 임포스터 유령도 사보타주는 건다, 킬은 못 한다
   ```
   역할(`role`), 임무 목록, 킬쿨은 결과(`w`) 전에는 절대 싣지 않는다. 누가 누구에게 투표했는지(`vt`)는 공개 단계에서만.
 
-- [ ] **Step 1: 시험 작성 `test/roles.test.js`**
+- [x] **Step 1: 시험 작성 `test/roles.test.js`**
 
 ```js
 'use strict';
@@ -1413,9 +1416,9 @@ test('암호: 망가진 봉투는 null', async () => {
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/roles.test.js` / Expected: FAIL
+- [x] **Step 2: Run** `node --test test/roles.test.js` / Expected: FAIL
 
-- [ ] **Step 3: `js/roles.js`**
+- [x] **Step 3: `js/roles.js`**
 
 ```js
 /* ============================================================
@@ -1522,9 +1525,9 @@ test('암호: 망가진 봉투는 null', async () => {
 })(window);
 ```
 
-- [ ] **Step 4: Run** `node --test test/roles.test.js` / Expected: PASS
+- [x] **Step 4: Run** `node --test test/roles.test.js` / Expected: PASS
 
-- [ ] **Step 5: 시험 작성 `test/snap.test.js`**
+- [x] **Step 5: 시험 작성 `test/snap.test.js`**
 
 ```js
 'use strict';
@@ -1597,9 +1600,9 @@ test('서버 과열 남은 시간과 누른 패널', () => {
 });
 ```
 
-- [ ] **Step 6: Run** `node --test test/snap.test.js` / Expected: FAIL
+- [x] **Step 6: Run** `node --test test/snap.test.js` / Expected: FAIL
 
-- [ ] **Step 7: `js/snap.js`**
+- [x] **Step 7: `js/snap.js`**
 
 ```js
 /* ============================================================
@@ -1656,8 +1659,8 @@ test('서버 과열 남은 시간과 누른 패널', () => {
 })(window);
 ```
 
-- [ ] **Step 8: Run** `node --test` / Expected: 전부 PASS
-- [ ] **Step 9: Commit** — `git add -A && git commit -m "역할 봉투와 방송용 상태"`
+- [x] **Step 8: Run** `node --test` / Expected: 전부 PASS
+- [x] **Step 9: Commit** — `git add -A && git commit -m "역할 봉투와 방송용 상태"`
 
 ---
 
@@ -1670,7 +1673,7 @@ test('서버 과열 남은 시간과 누른 패널', () => {
 - Produces `walker.js`: `route(M, from:{x,y}, target:{x,y}, range) → [{x,y}] | null` (칸 중심 경유점, 목표까지 range 안에 드는 첫 바닥 칸에서 끝), `steer(p:{x,y}, path) → {x,y}` (다음 경유점 방향 단위벡터, 가까우면 경유점을 빼고 다음으로; 경로가 비면 {0,0})
 - 이 걷기 도구는 Task 10의 `js/devbots.js`도 같은 알고리즘을 쓴다(브라우저용으로 다시 적는다).
 
-- [ ] **Step 1: `testlib/walker.js`**
+- [x] **Step 1: `testlib/walker.js`**
 
 ```js
 'use strict';
@@ -1714,7 +1717,7 @@ function steer(p, path) {
 module.exports = { route, steer };
 ```
 
-- [ ] **Step 2: 시험 작성 `test/fullgame.test.js`**
+- [x] **Step 2: 시험 작성 `test/fullgame.test.js`**
 
 ```js
 'use strict';
@@ -1827,9 +1830,9 @@ test('임포스터가 환풍구로 탕비실에서 복사실로 간다', () => {
 });
 ```
 
-- [ ] **Step 3: Run** `node --test test/fullgame.test.js` / Expected: PASS. 실패하면 원인이 맵(길 막힘)인지 규칙(거리)인지 로그로 가르고, 해당 파일과 그 단위 시험을 함께 고친다.
-- [ ] **Step 4: Run** `node --test` / Expected: 전부 PASS
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "가짜 플레이어로 한 판 통째로 시험"`
+- [x] **Step 3: Run** `node --test test/fullgame.test.js` / Expected: PASS. 실패하면 원인이 맵(길 막힘)인지 규칙(거리)인지 로그로 가르고, 해당 파일과 그 단위 시험을 함께 고친다.
+- [x] **Step 4: Run** `node --test` / Expected: 전부 PASS
+- [x] **Step 5: Commit** — `git add -A && git commit -m "가짜 플레이어로 한 판 통째로 시험"`
 
 ---
 
@@ -1843,7 +1846,7 @@ test('임포스터가 환풍구로 탕비실에서 복사실로 간다', () => {
 - Produces: `LocalNet.make(channelName, BroadcastChannelCtor) → { put, del, get, watch }` (Net과 같은 모양, 모두 Promise / watch는 `{close, state}`). 주소에 `local`이 있으면 `window.Net`의 `put/del/get/watch`를 이것으로 바꿔 끼운다(`applyEvent`, `url`은 그대로).
 - 동작: 탭마다 DB 사본을 들고, 쓰기는 자기 사본에 반영 + 채널로 `{type:'w', path, data}` 방송. 새 탭은 `{type:'hello'}`를 보내고, 받은 탭이 `{type:'full', db}`로 답한다. 내 사본이 비었을 때만 받아들인다. `watch(path)`는 그 경로 아래 쓰기를 Firebase SSE와 같은 `put` 의미(경로 기준 교체)로 콜백한다.
 
-- [ ] **Step 1: 시험 작성 `test/localnet.test.js`** (Node에서 가짜 채널로)
+- [x] **Step 1: 시험 작성 `test/localnet.test.js`** (Node에서 가짜 채널로)
 
 ```js
 'use strict';
@@ -1890,9 +1893,9 @@ test('get 은 없는 경로에 null', async () => {
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/localnet.test.js` / Expected: FAIL
+- [x] **Step 2: Run** `node --test test/localnet.test.js` / Expected: FAIL
 
-- [ ] **Step 3: `js/localnet.js`**
+- [x] **Step 3: `js/localnet.js`**
 
 ```js
 /* ============================================================
@@ -1995,10 +1998,10 @@ test('get 은 없는 경로에 null', async () => {
 })(window);
 ```
 
-- [ ] **Step 4: Run** `node --test test/localnet.test.js` / Expected: PASS
-- [ ] **Step 5: `docs/firebase-rules-crew.json`** — 설계서 "Firebase 규칙" 블록을 그대로 담는다. 위아래에 기존 `scores`, `rooms` 블록까지 포함한 **완성본 전체**로 만든다(`C:\Users\NAU\Desktop\Overworked\docs\firebase-rules.json`의 내용 + `"crew"` 블록). 콘솔에는 이 파일 전체를 붙여넣는다.
-- [ ] **Step 6: 확인** — `node -e "JSON.parse(require('fs').readFileSync('docs/firebase-rules-crew.json','utf8'))"` / Expected: 오류 없음
-- [ ] **Step 7: Commit** — `git add -A && git commit -m "로컬 접속판과 crew 규칙 파일"`
+- [x] **Step 4: Run** `node --test test/localnet.test.js` / Expected: PASS
+- [x] **Step 5: `docs/firebase-rules-crew.json`** — 설계서 "Firebase 규칙" 블록을 그대로 담는다. 위아래에 기존 `scores`, `rooms` 블록까지 포함한 **완성본 전체**로 만든다(`C:\Users\NAU\Desktop\Overworked\docs\firebase-rules.json`의 내용 + `"crew"` 블록). 콘솔에는 이 파일 전체를 붙여넣는다.
+- [x] **Step 6: 확인** — `node -e "JSON.parse(require('fs').readFileSync('docs/firebase-rules-crew.json','utf8'))"` / Expected: 오류 없음
+- [x] **Step 7: Commit** — `git add -A && git commit -m "로컬 접속판과 crew 규칙 파일"`
 
 ---
 
@@ -2028,17 +2031,17 @@ test('get 은 없는 경로에 null', async () => {
 7. 시작(방장): 산 사람 목록 = `Room.alive(who, now, seenAt)` + 나. 4명 미만이면 무시. `roles = Roles.pick(pids, imp)`, 각자 `Roles.pickTasks(OfficeMap.stationIds(), 5)`. 각 pid에 `Roles.seal(myPriv, who[pid].pub, {r, t, m})`를 `sec/<pid>`에 쓴다(임포스터 봉투의 `m`은 다른 임포스터 pid 목록, 직원은 `[]`). 모두 쓴 뒤 `meta.phase = 'play'`. 방장 메모리에 `Rules.create(...)`.
 8. 참가자: `phase === 'play'`이고 내 봉투가 아직 없으면 `sec/<me>`를 `Roles.open(myPriv, who[host].pub, sec[me])`로 연다. 실패(null)면 "역할을 못 받았어요. 새로고침 후 다시 들어오세요" 안내.
 
-- [ ] **Step 1: `index.html`** — 스크립트 순서: `cloud-config, net, localnet, room, interp, map, geom, rules, roles, snap, tasks/common, tasks/copier, tasks/render, tasks/coffee, tasks/cable, tasks/stamp, tasks/plant, view, hud, meeting, lobby, devbots, game`. 본문: `<div id="app"><canvas id="world"></canvas><div id="hud"></div><div id="layer"></div><div id="net"></div></div>`. 아직 없는 파일은 이 Task에서 빈 IIFE로 만들어 둔다(`(function(global){'use strict';})(window);`).
-- [ ] **Step 2: `css/style.css`** — 어두운 사무실 톤(배경 #1d2230, 패널 #2b3245, 강조 #ffcc4d, 글자 #eef1f7), 기본 글꼴 `'Pretendard', 'Malgun Gothic', sans-serif`, 버튼 큼직하게(최소 높이 44px), 꺼진 버튼은 투명도 0.4 + 커서 not-allowed.
-- [ ] **Step 3: `js/lobby.js`, `js/game.js`의 대기실 부분** — 위 "화면 요구"와 "흐름" 1~8을 그대로 구현.
-- [ ] **Step 4: `게임 실행.bat`** — 모코파크 것과 같은 모양, 제목 "사무실 임포스터", 포트 8896, 안내문에 "혼자 시험: http://localhost:8896/?local&bots=5". 내용을 UTF-8 임시 파일로 Write 도구로 쓴 뒤 PowerShell로 cp949 변환 저장:
+- [x] **Step 1: `index.html`** — 스크립트 순서: `cloud-config, net, localnet, room, interp, map, geom, rules, roles, snap, tasks/common, tasks/copier, tasks/render, tasks/coffee, tasks/cable, tasks/stamp, tasks/plant, view, hud, meeting, lobby, devbots, game`. 본문: `<div id="app"><canvas id="world"></canvas><div id="hud"></div><div id="layer"></div><div id="net"></div></div>`. 아직 없는 파일은 이 Task에서 빈 IIFE로 만들어 둔다(`(function(global){'use strict';})(window);`).
+- [x] **Step 2: `css/style.css`** — 어두운 사무실 톤(배경 #1d2230, 패널 #2b3245, 강조 #ffcc4d, 글자 #eef1f7), 기본 글꼴 `'Pretendard', 'Malgun Gothic', sans-serif`, 버튼 큼직하게(최소 높이 44px), 꺼진 버튼은 투명도 0.4 + 커서 not-allowed.
+- [x] **Step 3: `js/lobby.js`, `js/game.js`의 대기실 부분** — 위 "화면 요구"와 "흐름" 1~8을 그대로 구현.
+- [x] **Step 4: `게임 실행.bat`** — 모코파크 것과 같은 모양, 제목 "사무실 임포스터", 포트 8897, 안내문에 "혼자 시험: http://localhost:8897/?local&bots=5". 내용을 UTF-8 임시 파일로 Write 도구로 쓴 뒤 PowerShell로 cp949 변환 저장:
 
 ```powershell
 $t = [IO.File]::ReadAllText('<임시 파일>', [Text.Encoding]::UTF8)
 [IO.File]::WriteAllText('C:\Users\NAU\Desktop\OfficeImpostor\게임 실행.bat', $t, [Text.Encoding]::GetEncoding(949))
 ```
-- [ ] **Step 5: 브라우저 확인** — `.claude/launch.json`에 `{"name":"office-impostor","runtimeExecutable":"python","runtimeArgs":["-m","http.server","8896","--directory","C:/Users/NAU/Desktop/OfficeImpostor"],"port":8896}` 추가 후 preview_start. 탭 A `/?local` 방 만들기 → 탭 B `/?local` 코드로 입장 → 두 탭 모두 참가자 2명, 색 겹침 없음, A만 시작 버튼(꺼짐, "4명 이상" 안내). 스크린샷.
-- [ ] **Step 6: Commit** — `git add -A && git commit -m "첫 화면과 대기실"`
+- [x] **Step 5: 브라우저 확인** — `.claude/launch.json`에 `{"name":"office-impostor","runtimeExecutable":"python","runtimeArgs":["-m","http.server","8897","--directory","C:/Users/NAU/Desktop/OfficeImpostor"],"port":8897}` 추가 후 preview_start. 탭 A `/?local` 방 만들기 → 탭 B `/?local` 코드로 입장 → 두 탭 모두 참가자 2명, 색 겹침 없음, A만 시작 버튼(꺼짐, "4명 이상" 안내). 스크린샷.
+- [x] **Step 6: Commit** — `git add -A && git commit -m "첫 화면과 대기실"`
 
 ---
 
@@ -2072,9 +2075,9 @@ $t = [IO.File]::ReadAllText('<임시 파일>', [Text.Encoding]::UTF8)
 - 시작 3초: 화면 가운데 큰 글씨 "직원" 또는 "임포스터" + 설명 한 줄.
 - 키: WASD/방향키 이동, E/스페이스 사용, Q 킬(가장 가까운 산 직원 대상, 클라이언트는 자기가 아는 동료는 제외), R 신고(가장 가까운 시체), Tab 사보타주 메뉴.
 
-- [ ] **Step 1~3: `view.js`, `hud.js`, game.js 게임 루프 구현** (위 요구 그대로)
-- [ ] **Step 4: 브라우저 확인** — `/?local` 단일 탭은 4명 미만이라 시작 불가 → Task 10의 봇 전에는 임시로 `?local&min=1` 일 때 최소 인원 1명으로 시작 가능하게 한다(이 옵션은 `local`일 때만 먹는다). 확인: 이동, 벽 충돌, 시야 어둠, 임무 노란 표시, HUD 배치. 스크린샷.
-- [ ] **Step 5: Commit** — `git add -A && git commit -m "게임 화면: 이동·시야·HUD"`
+- [x] **Step 1~3: `view.js`, `hud.js`, game.js 게임 루프 구현** (위 요구 그대로)
+- [x] **Step 4: 브라우저 확인** — `/?local` 단일 탭은 4명 미만이라 시작 불가 → Task 10의 봇 전에는 임시로 `?local&min=1` 일 때 최소 인원 1명으로 시작 가능하게 한다(이 옵션은 `local`일 때만 먹는다). 확인: 이동, 벽 충돌, 시야 어둠, 임무 노란 표시, HUD 배치. 스크린샷.
+- [x] **Step 5: Commit** — `git add -A && git commit -m "게임 화면: 이동·시야·HUD"`
 
 ---
 
@@ -2091,9 +2094,9 @@ $t = [IO.File]::ReadAllText('<임시 파일>', [Text.Encoding]::UTF8)
   - 회의: 투표 단계 시작 2~8초 뒤 무작위로 투표(직원 봇은 시체 근처에서 본 사람 중 하나, 없으면 `skip`). 채팅에 "저 탕비실에 있었어요" 같은 짧은 문장 하나.
 - `local`이 아니면 이 파일은 아무것도 안 한다.
 
-- [ ] **Step 1: 구현**
-- [ ] **Step 2: 브라우저 확인** — `/?local&bots=5` 한 탭으로 방 만들기 → 6명 → 시작 → 봇들이 움직이고 임무 진행 바가 오른다 → 킬 → 신고 → 회의 화면까지 가는지(회의 화면은 Task 12 전이면 빈 화면이어도 단계 전환만 확인). 스크린샷.
-- [ ] **Step 3: Commit** — `git add -A && git commit -m "시험용 봇 (로컬 전용)"`
+- [x] **Step 1: 구현**
+- [x] **Step 2: 브라우저 확인** — `/?local&bots=5` 한 탭으로 방 만들기 → 6명 → 시작 → 봇들이 움직이고 임무 진행 바가 오른다 → 킬 → 신고 → 회의 화면까지 가는지(회의 화면은 Task 12 전이면 빈 화면이어도 단계 전환만 확인). 스크린샷.
+- [x] **Step 3: Commit** — `git add -A && git commit -m "시험용 봇 (로컬 전용)"`
 
 ---
 
@@ -2113,7 +2116,7 @@ $t = [IO.File]::ReadAllText('<임시 파일>', [Text.Encoding]::UTF8)
   - `plant.judge(level) → 'ok'|'low'|'over'` — 0.6~0.8 ok
 - 할 일 문구(`label`): copier "복사기에 용지 넣기", render "렌더 큐 걸기", coffee "커피 내리기", cable "서버 케이블 연결", stamp "결재 도장 찍기", plant "화분 물 주기".
 
-- [ ] **Step 1: 판정 시험 작성 `test/tasks.test.js`**
+- [x] **Step 1: 판정 시험 작성 `test/tasks.test.js`**
 
 ```js
 'use strict';
@@ -2159,18 +2162,18 @@ test('화분: 초록 칸', () => {
 });
 ```
 
-- [ ] **Step 2: Run** `node --test test/tasks.test.js` / Expected: FAIL
-- [ ] **Step 3: 구현** — 각 파일은 판정 함수 + `mount`(DOM·작은 캔버스). `document`가 없으면(Node) `mount`는 안 부른다.
+- [x] **Step 2: Run** `node --test test/tasks.test.js` / Expected: FAIL
+- [x] **Step 3: 구현** — 각 파일은 판정 함수 + `mount`(DOM·작은 캔버스). `document`가 없으면(Node) `mount`는 안 부른다.
   - copier: 왼쪽 종이 묶음을 끌어 오른쪽 용지함에 놓기. 놓친 곳에 놓으면 제자리로.
   - render: 샷 이름 3개("SH010_조명", "SH020_카페인트", "SH030_턴테이블") 체크박스, 순서 어기면 흔들림. 다 체크 후 [렌더] → 2초 진행 바.
   - coffee: [누르고 있기] 버튼을 누르는 동안 잔이 0→1을 2.2초에 참. 떼면 판정. low면 "조금 더", over면 "넘쳤어요! 다시" 후 0으로.
   - cable: 왼쪽 4색 단자 → 오른쪽 섞인 4색 단자로 마우스 끌기. 틀린 색에 놓으면 선이 사라짐.
   - stamp: 서류 3장이 차례로 나옴, 빈칸(점선 상자)에 클릭하면 빨간 도장. 빗나가면 "빈칸에 찍어 주세요"와 함께 그 장 다시.
   - plant: [물 주기] 버튼을 누르는 동안 게이지 상승(초당 0.4), 떼면 판정.
-- [ ] **Step 4: Run** `node --test` / Expected: 전부 PASS
-- [ ] **Step 5: 게임 연결** — 내 남은 임무 장소에서 E → `Tasks.open(type)` → `'done'`이면 `use` 명령 전송. 열려 있는 동안 이동 입력은 0. 임포스터가 가짜 임무에서 E를 누르면 같은 창이 열리고 끝나도 명령은 안 보낸다(하는 척).
-- [ ] **Step 6: 브라우저 확인** — 여섯 개 각각 열어 끝까지 해 보고 스크린샷 6장.
-- [ ] **Step 7: Commit** — `git add -A && git commit -m "미니게임 6종"`
+- [x] **Step 4: Run** `node --test` / Expected: 전부 PASS
+- [x] **Step 5: 게임 연결** — 내 남은 임무 장소에서 E → `Tasks.open(type)` → `'done'`이면 `use` 명령 전송. 열려 있는 동안 이동 입력은 0. 임포스터가 가짜 임무에서 E를 누르면 같은 창이 열리고 끝나도 명령은 안 보낸다(하는 척).
+- [x] **Step 6: 브라우저 확인** — 여섯 개 각각 열어 끝까지 해 보고 스크린샷 6장.
+- [x] **Step 7: Commit** — `git add -A && git commit -m "미니게임 6종"`
 
 ---
 
@@ -2191,9 +2194,9 @@ test('화분: 초록 칸', () => {
 - 공개 단계: 각 카드 아래에 그 사람에게 투표한 사람들의 색 점, [건너뛰기] 아래도 같이. 1초 뒤 전체 화면 추방 연출: 검은 배경에 콩이 화면을 가로질러 날아감 + "OOO님은 임포스터였습니다/가 아니었습니다", 아래 "남은 임포스터 N명". 아무도 없으면 "아무도 추방되지 않았습니다".
 - 결과 화면: "직원 승리" 하늘색 / "임포스터 승리" 빨강 + 이유 문장(tasks "업무를 모두 끝냈습니다", vote "임포스터를 모두 찾아냈습니다", kill "직원이 너무 많이 사라졌습니다", sab "서버가 과열로 멈췄습니다"), 임포스터였던 사람들 콩 + 이름. 10초 뒤 방장이 `meta.phase='lobby'`로 되돌리고 `st`, `sec`, `chat`, `in` 삭제.
 
-- [ ] **Step 1: 구현**
-- [ ] **Step 2: 브라우저 확인** — `/?local&bots=5`로 회의까지 가서 채팅 입력, 투표, 공개, 추방 연출, 다시 게임, 결과, 대기실 복귀까지. 스크린샷 4장(토론, 공개, 추방, 결과).
-- [ ] **Step 3: Commit** — `git add -A && git commit -m "회의·채팅·투표·추방·결과"`
+- [x] **Step 1: 구현**
+- [x] **Step 2: 브라우저 확인** — `/?local&bots=5`로 회의까지 가서 채팅 입력, 투표, 공개, 추방 연출, 다시 게임, 결과, 대기실 복귀까지. 스크린샷 4장(토론, 공개, 추방, 결과).
+- [x] **Step 3: Commit** — `git add -A && git commit -m "회의·채팅·투표·추방·결과"`
 
 ---
 
@@ -2210,9 +2213,9 @@ test('화분: 초록 칸', () => {
 - 정전 중: 직원 시야 48로 줄어듦(임포스터는 그대로), 화면 위 노란 띠 "정전! 창고 두꺼비집을 고치세요", 두꺼비집이 노랗게 깜빡임.
 - 서버 과열 중: 화면 가장자리 붉은 맥동, 위 빨간 띠 "서버 과열! 0:37 — 서버실·렌더팜 패널을 동시에 누르세요 (1/2)". 패널 근처에서 E를 **누르고 있는 동안** `hold`(a=p1|p2), 떼거나 멀어지면 `hold`(a='').
 - 유령: 죽으면 "당신은 죽었습니다 — 유령으로 남은 임무를 계속할 수 있어요" 3초 안내, 화면 어둠 없음, 반투명 내 캐릭터, 신고·버튼 비활성. 유령끼리는 반투명으로 보임. 회의 채팅에서 유령 글은 유령에게만.
-- [ ] **Step 1: 구현**
-- [ ] **Step 2: 브라우저 확인** — `/?local&bots=5`에서 내가 임포스터가 될 때까지 다시 시작(대기실에서 `?local&me=imp`이면 방장 자신을 임포스터로 고정하는 시험 옵션, local 전용). 환풍구 이동, 정전, 서버 과열(봇이 패널로 감), 죽은 뒤 유령 화면 스크린샷.
-- [ ] **Step 3: Commit** — `git add -A && git commit -m "환풍구·사보타주·유령 화면"`
+- [x] **Step 1: 구현**
+- [x] **Step 2: 브라우저 확인** — `/?local&bots=5`에서 내가 임포스터가 될 때까지 다시 시작(대기실에서 `?local&me=imp`이면 방장 자신을 임포스터로 고정하는 시험 옵션, local 전용). 환풍구 이동, 정전, 서버 과열(봇이 패널로 감), 죽은 뒤 유령 화면 스크린샷.
+- [x] **Step 3: Commit** — `git add -A && git commit -m "환풍구·사보타주·유령 화면"`
 
 ---
 
@@ -2222,8 +2225,8 @@ test('화분: 초록 칸', () => {
 - Create: `README.md`, `깃허브업데이트.bat`(cp949)
 
 - [ ] **Step 1: 규칙 게시 요청** — 사용자에게: Firebase 콘솔 → Realtime Database → 규칙 탭에서 현재 규칙을 먼저 복사해 `docs/firebase-rules-backup-<날짜>.json`로 저장, 그다음 `docs/firebase-rules-crew.json` 전체를 붙여넣고 [게시]. Claude는 콘솔을 만지지 않는다. **사용자가 게시했다고 말하기 전에는 다음 단계를 진행하지 않는다.**
-- [ ] **Step 2: 실제 접속 확인** — `http://localhost:8896/` 탭 두 개(?local 없이)로 방 만들기·입장·나가기. 그다음 `Net.put('crew/TEST/...')` 직접 호출로 규칙 검증: 허용 필드는 200, `crew/TEST/meta/evil` 같은 금지 필드는 401/403. `rooms/`·`scores/`는 읽기만 해서 기존 데이터가 그대로인지 확인.
-- [ ] **Step 3: `README.md`** — 하는 법(조작키 표), 혼자 시험하는 법(`?local&bots=5`), 파일 지도, Firebase 경로 금지 규칙.
-- [ ] **Step 4: `깃허브업데이트.bat`** — 모코파크 것과 같은 모양, 주소 `https://mokh990322-source.github.io/office-impostor/`. cp949.
+- [ ] **Step 2: 실제 접속 확인** — `http://localhost:8897/` 탭 두 개(?local 없이)로 방 만들기·입장·나가기. 그다음 `Net.put('crew/TEST/...')` 직접 호출로 규칙 검증: 허용 필드는 200, `crew/TEST/meta/evil` 같은 금지 필드는 401/403. `rooms/`·`scores/`는 읽기만 해서 기존 데이터가 그대로인지 확인.
+- [x] **Step 3: `README.md`** — 하는 법(조작키 표), 혼자 시험하는 법(`?local&bots=5`), 파일 지도, Firebase 경로 금지 규칙.
+- [x] **Step 4: `깃허브업데이트.bat`** — 모코파크 것과 같은 모양, 주소 `https://mokh990322-source.github.io/office-impostor/`. cp949.
 - [ ] **Step 5: 저장소 만들기 확인** — 사용자에게 "공개 저장소 `mokh990322-source/office-impostor`를 만들고 GitHub Pages를 켤까요?"를 묻는다. 허락하면 `gh repo create mokh990322-source/office-impostor --public --source . --push` 후 Pages 설정(`gh api -X POST repos/mokh990322-source/office-impostor/pages -f "source[branch]=main" -f "source[path]=/"`). 허락 없으면 로컬 커밋까지만.
 - [ ] **Step 6: Commit** — `git add -A && git commit -m "README와 배포 파일"`
