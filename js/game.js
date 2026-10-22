@@ -659,12 +659,18 @@
       if (isHost() && S.state) hostTick();
       try { gameFrame(dt); } catch (e) { if (global.console) console.error(e); }
     }
+    S.rafAt = performance.now();
     global.requestAnimationFrame(frame);
   }
 
-  /* 방장 탭이 숨겨지면 requestAnimationFrame 이 멈추고, 보통 타이머도 1초에 한 번으로
-     늦춰진다. 워커 안의 타이머는 늦춰지지 않으므로 그걸로 판을 민다. */
-  function hiddenTick() { if (document.hidden && S.screen === 'game' && isHost() && S.state) hostTick(); }
+  /* 방장 탭이 가려지면 requestAnimationFrame 이 멈추고, 보통 타이머도 1초에 한 번으로
+     늦춰진다. document.hidden 이 false 인 채로 멈추는 경우도 있다(가려진 창, 미리보기 창).
+     그래서 화면 갱신이 0.2초 넘게 없으면 워커 타이머로 판을 민다.
+     워커 안의 타이머는 늦춰지지 않는다. */
+  function hiddenTick() {
+    if (S.screen !== 'game' || !isHost() || !S.state) return;
+    if (document.hidden || performance.now() - (S.rafAt || 0) > 200) hostTick();
+  }
   (function () {
     try {
       var src = 'setInterval(function(){postMessage(0)},50);';

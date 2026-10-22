@@ -23,9 +23,9 @@
       t += dt;
       if (btn.held && !ended) { level += RATE * dt; if (level > 1) { btn.held = false; say('물이 넘쳤어요! 다시.'); level = 0; } }
       ctx.fillStyle = '#e8f3e8'; ctx.fillRect(0, 0, Tasks.W, Tasks.H);
-      UI.rr(ctx, 150, 170, 110, 80, 10); ctx.fillStyle = '#b9653a'; ctx.fill();
+      UI.rr(ctx, 150, 130, 110, 80, 10); ctx.fillStyle = "#b9653a"; ctx.fill();
       ctx.fillStyle = '#27ae60';
-      for (var i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(205 + (i - 2) * 18, 140 - Math.abs(i - 2) * 10 + Math.sin(t * 2 + i) * 2, 14, 30, (i - 2) * 0.3, 0, 7); ctx.fill(); }
+      for (var i = 0; i < 5; i++) { ctx.beginPath(); ctx.ellipse(205 + (i - 2) * 18, 100 - Math.abs(i - 2) * 10 + Math.sin(t * 2 + i) * 2, 14, 30, (i - 2) * 0.3, 0, 7); ctx.fill(); }
       var ang = btn.held ? -0.5 : 0;
       ctx.save(); ctx.translate(300, 90); ctx.rotate(ang);
       UI.rr(ctx, -30, -20, 60, 40, 8); ctx.fillStyle = '#3498db'; ctx.fill();
