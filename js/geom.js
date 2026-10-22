@@ -40,10 +40,13 @@
 
   var STEP = 4;
 
+  /* 시야는 벽만 막는다(map.opaque). 없으면 막힌 칸 전부. */
+  function blocks(map, tx, ty) { return map.opaque ? map.opaque(tx, ty) : map.solid(tx, ty); }
+
   function ray(map, x, y, ang, max) {
     var c = Math.cos(ang), s = Math.sin(ang), T = map.T;
     for (var d = 0; d < max; d += STEP) {
-      if (map.solid(Math.floor((x + c * d) / T), Math.floor((y + s * d) / T))) return d;
+      if (blocks(map, Math.floor((x + c * d) / T), Math.floor((y + s * d) / T))) return d;
     }
     return max;
   }
@@ -64,7 +67,7 @@
     if (len < 1e-6) return true;
     for (var d = 0; d <= len; d += STEP) {
       var k = d / len;
-      if (map.solid(Math.floor((ax + dx * k) / T), Math.floor((ay + dy * k) / T))) return false;
+      if (blocks(map, Math.floor((ax + dx * k) / T), Math.floor((ay + dy * k) / T))) return false;
     }
     return true;
   }

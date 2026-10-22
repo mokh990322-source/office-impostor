@@ -82,6 +82,11 @@
     if (tx < 0 || ty < 0 || tx >= W || ty >= H) return true;
     return grid[ty * W + tx] === 1;
   }
+  /* 시야를 막는 칸: 벽만. 탁자는 걸어서는 못 지나가도 너머는 보인다. */
+  function opaque(tx, ty) {
+    if (!solid(tx, ty)) return false;
+    return !(tx >= TABLE.x0 && tx <= TABLE.x1 && ty >= TABLE.y0 && ty <= TABLE.y1);
+  }
   function roomAtTile(tx, ty) {
     for (var i = 0; i < rooms.length; i++) {
       var m = rooms[i];
@@ -98,6 +103,7 @@
   global.OfficeMap = {
     T: T, W: W, H: H, rooms: rooms, objects: objects, table: TABLE,
     solid: solid,
+    opaque: opaque,
     roomAt: roomAt,
     byId: function (id) { return Object.prototype.hasOwnProperty.call(byIdMap, id) ? byIdMap[id] : null; },
     center: function (o) { return { x: (o.tx + 0.5) * T, y: (o.ty + 0.5) * T }; },

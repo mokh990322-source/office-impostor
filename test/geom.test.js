@@ -39,3 +39,9 @@ test('벽 너머는 안 보이고 같은 방은 보인다', () => {
 test('반경 밖은 안 보인다', () => {
   assert.equal(G.canSee(M, ROOM.x, ROOM.y, ROOM.x + 200, ROOM.y, 192), false);
 });
+
+test('회의실 탁자는 시야를 막지 않는다', () => {
+  // 탁자 위(y=18)에서 탁자 아래(y=22)를 본다
+  assert.equal(G.canSee(M, 28.5 * 32, 18.5 * 32, 28.5 * 32, 22.5 * 32, 288), true);
+  assert.equal(M.solid(28, 20), true, '걸어서는 못 지나감');
+});
