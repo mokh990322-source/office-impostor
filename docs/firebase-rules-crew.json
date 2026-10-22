@@ -1,0 +1,203 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "scores": {
+      ".read": true,
+      "$who": {
+        ".write": true,
+        ".validate": "newData.hasChildren(['name','floor'])",
+        "name": {
+          ".validate": "newData.isString() && newData.val().length <= 12"
+        },
+        "floor": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000"
+        },
+        "date": {
+          ".validate": "newData.isString() && newData.val().length <= 12"
+        },
+        "t": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "rooms": {
+      "$code": {
+        ".read": "$code.length == 4",
+        ".write": "$code.length == 4",
+        "meta": {
+          ".validate": "newData.hasChildren(['host','phase'])",
+          "host": {
+            ".validate": "newData.isString() && newData.val().length <= 24"
+          },
+          "phase": {
+            ".validate": "newData.isString() && (newData.val() == 'lobby' || newData.val() == 'play' || newData.val() == 'result')"
+          },
+          "stage": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 6"
+          },
+          "born": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "who": {
+          "$pid": {
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "char": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7"
+            },
+            "join": {
+              ".validate": "newData.isNumber()"
+            },
+            "seen": {
+              ".validate": "newData.isNumber()"
+            },
+            "gear": {
+              ".validate": "newData.hasChildren()"
+            }
+          }
+        },
+        "in": {
+          "$pid": {
+            "x": {
+              ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1"
+            },
+            "y": {
+              ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1"
+            },
+            "act": {
+              ".validate": "newData.isNumber()"
+            },
+            "seq": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "st": {
+          ".validate": "newData.hasChild('t')"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "crew": {
+      "$code": {
+        ".read": "$code.length == 4",
+        ".write": "$code.length == 4",
+        "meta": {
+          ".validate": "newData.hasChildren(['host','phase'])",
+          "host": {
+            ".validate": "newData.isString() && newData.val().length <= 24"
+          },
+          "phase": {
+            ".validate": "newData.isString() && (newData.val() == 'lobby' || newData.val() == 'play' || newData.val() == 'meeting' || newData.val() == 'result')"
+          },
+          "imp": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 2"
+          },
+          "born": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "who": {
+          "$pid": {
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 12"
+            },
+            "color": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9"
+            },
+            "join": {
+              ".validate": "newData.isNumber()"
+            },
+            "seen": {
+              ".validate": "newData.isNumber()"
+            },
+            "pub": {
+              ".validate": "newData.isString() && newData.val().length <= 200"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "in": {
+          "$pid": {
+            "x": {
+              ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1"
+            },
+            "y": {
+              ".validate": "newData.isNumber() && newData.val() >= -1 && newData.val() <= 1"
+            },
+            "n": {
+              ".validate": "newData.isNumber()"
+            },
+            "k": {
+              ".validate": "newData.isString() && newData.val().length <= 10"
+            },
+            "a": {
+              ".validate": "newData.isString() && newData.val().length <= 24"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "chat": {
+          "$id": {
+            ".validate": "newData.hasChildren(['p','m','t'])",
+            "p": {
+              ".validate": "newData.isString() && newData.val().length <= 24"
+            },
+            "m": {
+              ".validate": "newData.isString() && newData.val().length <= 120"
+            },
+            "t": {
+              ".validate": "newData.isNumber()"
+            },
+            "g": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "sec": {
+          "$pid": {
+            "iv": {
+              ".validate": "newData.isString() && newData.val().length <= 32"
+            },
+            "ct": {
+              ".validate": "newData.isString() && newData.val().length <= 600"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "st": {
+          ".validate": "newData.hasChild('t')"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    }
+  }
+}
