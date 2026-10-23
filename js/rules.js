@@ -23,7 +23,7 @@
   var C = {
     SPEED: 170, R: 14,
     KILL_R: 48, REPORT_R: 48, USE_R: 56, BTN_R: 40, VENT_R: 40,   // BTN_R 은 탁자 가장자리까지 거리
-    KILL_CD: 25, BTN_CD: 15, BTN_PER_PLAYER: 1,
+    KILL_CD: 25, EAT_CD: 30, BTN_CD: 15, BTN_PER_PLAYER: 1,
     TALK: 60, VOTE: 30, REVEAL: 4, RESULT: 10,
     SAB_FIRST: 10, SAB_CD: 30, REACTOR: 45, VENT_EXIT_DELAY: 0.3,
     VISION_CREW: 192, VISION_IMP: 288, VISION_LIGHTS: 48,
@@ -35,19 +35,23 @@
   function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
   function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
 
+  /* 펠리컨이 이기려면 삼켜야 하는 사람 수 */
+  function pelGoal(n) { return n >= 8 ? 3 : 2; }
+
   function create(list, roles, tasks) {
     var s = {
       phase: 'play', t: 0, order: [], players: {}, bodies: [],
       btnCdUntil: C.BTN_CD, sab: null, sabCdUntil: C.SAB_FIRST,
-      meeting: null, winner: null, why: null, resultUntil: 0, ended: false
+      meeting: null, winner: null, why: null, resultUntil: 0, ended: false,
+      pelGoal: pelGoal(list.length)
     };
     for (var i = 0; i < list.length; i++) {
       var e = list[i], sp = M.spawn(i);
       s.players[e.pid] = {
         name: e.name, color: e.color, x: sp.x, y: sp.y,
-        alive: true, left: false, role: roles[e.pid] === 'imp' ? 'imp' : 'crew',
+        alive: true, left: false, role: roles[e.pid] === 'imp' || roles[e.pid] === 'pel' ? roles[e.pid] : 'crew',
         tasks: (tasks[e.pid] || []).slice(), done: {},
-        killCd: C.KILL_CD, btnLeft: C.BTN_PER_PLAYER,
+        killCd: C.KILL_CD, eatCd: C.EAT_CD, eats: 0, eaten: null, btnLeft: C.BTN_PER_PLAYER,
         vent: null, ventAt: 0, ix: 0, iy: 0
       };
       s.order.push(e.pid);
@@ -85,9 +89,15 @@
 
   function checkWin(s, ev) {
     if (s.winner) return true;
+    for (var i = 0; i < s.order.length; i++) {
+      var q = s.players[s.order[i]];
+      if (q.role === 'pel' && q.alive && !q.left && q.eats >= s.pelGoal) return finish(s, 'pel', 'eat', ev);
+    }
     var pr = progress(s), c = counts(s);
     if (pr.total > 0 && pr.done >= pr.total) return finish(s, 'crew', 'tasks', ev);
-    if (c.imp === 0) return finish(s, 'crew', 'vote', ev);
+    /* 뱃속 임포스터는 풀려날 수 있으니 소화되기 전까진 아직 판에 있는 걸로 센다 */
+    var impEaten = s.order.filter(function (pid) { var q = s.players[pid]; return q.role === 'imp' && q.eaten && !q.left; }).length;
+    if (c.imp + impEaten === 0) return finish(s, 'crew', 'vote', ev);
     if (c.imp >= c.crew) return finish(s, 'imp', 'kill', ev);
     return false;
   }
@@ -97,10 +107,12 @@
   function startMeeting(s, by, body, ev) {
     s.phase = 'meeting';
     s.bodies = [];
+    /* 뱃속에 있던 사람은 회의가 열리면 소화된다(그대로 죽음) */
+    s.order.forEach(function (pid) { s.players[pid].eaten = null; });
     if (s.sab) { s.sab = null; s.sabCdUntil = s.t + C.SAB_CD; }
     s.order.forEach(function (pid) { var p = s.players[pid]; p.vent = null; p.ix = 0; p.iy = 0; });
     s.meeting = { by: by, body: body, stage: 'talk', until: s.t + C.TALK, votes: {},
-      ejected: null, ejectedImp: false, impsLeft: 0 };
+      ejected: null, ejectedImp: false, ejectedPel: false, impsLeft: 0 };
     ev.push({ type: 'meeting', by: by, body: body });
   }
 
@@ -128,8 +140,8 @@
   function reveal(s, ev) {
     var m = s.meeting, e = tally(m.votes);
     if (e && (!s.players[e] || s.players[e].left)) e = null;
-    m.stage = 'reveal'; m.until = s.t + C.REVEAL; m.ejected = e; m.ejectedImp = false;
-    if (e) { s.players[e].alive = false; m.ejectedImp = s.players[e].role === 'imp'; }
+    m.stage = 'reveal'; m.until = s.t + C.REVEAL; m.ejected = e; m.ejectedImp = false; m.ejectedPel = false;
+    if (e) { s.players[e].alive = false; m.ejectedImp = s.players[e].role === 'imp'; m.ejectedPel = s.players[e].role === 'pel'; }
     m.impsLeft = counts(s).imp;
     ev.push({ type: 'reveal', ejected: e, imp: m.ejectedImp });
   }
@@ -142,6 +154,7 @@
       var p = s.players[pid], sp = M.spawn(i);
       p.x = sp.x; p.y = sp.y; p.vent = null; p.ix = 0; p.iy = 0;
       if (p.role === 'imp') p.killCd = C.KILL_CD;
+      if (p.role === 'pel') p.eatCd = C.EAT_CD;
     });
     s.btnCdUntil = s.t + C.BTN_CD;
     ev.push({ type: 'resume' });
@@ -167,6 +180,7 @@
     var p = s.players[pid], o = M.byId(a);
     if (!o) return;
     var d = dist(p, M.center(o));
+    if (p.eaten) return;   // 뱃속에선 아무것도 못 한다
     if (o.kind === 'task') {
       if (p.role !== 'crew' || p.tasks.indexOf(a) < 0 || p.done[a] || d > C.USE_R) return;
       p.done[a] = true;
@@ -205,13 +219,39 @@
   function kill(s, pid, a, ev) {
     var p = s.players[pid], v = own(s.players, a) ? s.players[a] : null;
     if (p.role !== 'imp' || !p.alive || p.vent || p.killCd > 0) return;
-    if (!v || !v.alive || v.left || v.role !== 'crew') return;
+    if (!v || !v.alive || v.left || v.role === 'imp') return;
     if (dist(p, v) > C.KILL_R) return;
     v.alive = false;
     s.bodies.push({ pid: a, x: v.x, y: v.y });
     p.x = v.x; p.y = v.y; p.killCd = C.KILL_CD;
     ev.push({ type: 'kill', pid: a, by: pid });
+    if (v.role === 'pel') release(s, a, ev);
     checkWin(s, ev);
+  }
+
+  /* 펠리컨: 가까운 사람을 꿀꺽. 시체가 안 남는다. 다음 회의 때 소화된다. */
+  function eat(s, pid, a, ev) {
+    var p = s.players[pid], v = own(s.players, a) ? s.players[a] : null;
+    if (p.role !== 'pel' || !p.alive || p.eatCd > 0) return;
+    if (!v || v === p || !v.alive || v.left || v.vent) return;
+    if (dist(p, v) > C.KILL_R) return;
+    v.alive = false; v.eaten = pid; v.x = p.x; v.y = p.y;
+    p.eatCd = C.EAT_CD; p.eats++;
+    ev.push({ type: 'eat', pid: a, by: pid });
+    checkWin(s, ev);
+  }
+
+  /* 회의 전에 펠리컨이 죽거나 나가면 뱃속 사람이 그 자리에서 살아 나온다 */
+  function release(s, pel, ev) {
+    var pp = s.players[pel];
+    s.order.forEach(function (pid) {
+      var q = s.players[pid];
+      if (q.eaten !== pel) return;
+      q.eaten = null;
+      if (q.left) return;
+      q.alive = true; q.x = pp.x; q.y = pp.y;
+      ev.push({ type: 'spit', pid: pid, by: pel });
+    });
   }
 
   function report(s, pid, a, ev) {
@@ -225,7 +265,7 @@
 
   function sabotage(s, pid, a, ev) {
     var p = s.players[pid];
-    if (p.role !== 'imp' || s.sab || s.t < s.sabCdUntil) return;
+    if (p.role !== 'imp' || p.eaten || s.sab || s.t < s.sabCdUntil) return;
     if (a === 'lights') s.sab = { kind: 'lights' };
     else if (a === 'reactor') s.sab = { kind: 'reactor', until: s.t + C.REACTOR, held: {} };
     else return;
@@ -261,6 +301,7 @@
     if (s.phase !== 'play') return;
     if (c.k === 'use') use(s, pid, a, ev);
     else if (c.k === 'kill') kill(s, pid, a, ev);
+    else if (c.k === 'eat') eat(s, pid, a, ev);
     else if (c.k === 'report') report(s, pid, a, ev);
     else if (c.k === 'sab') sabotage(s, pid, a, ev);
     else if (c.k === 'hold') hold(s, pid, a);
@@ -273,6 +314,8 @@
       var p = s.players[pid];
       if (p.left) return;
       if (p.role === 'imp' && p.alive) p.killCd = Math.max(0, p.killCd - dt);
+      if (p.role === 'pel' && p.alive) p.eatCd = Math.max(0, p.eatCd - dt);
+      if (p.eaten) return;   // 뱃속에선 못 움직인다
       var ix = p.ix, iy = p.iy, m = Math.sqrt(ix * ix + iy * iy);
       if (m > 1) { ix /= m; iy /= m; m = 1; }
       if (p.vent) {
@@ -338,13 +381,14 @@
     var ev = [], p = own(s.players, pid) ? s.players[pid] : null;
     if (!p || p.left) return ev;
     p.left = true; p.alive = false; p.vent = null;
+    if (p.role === 'pel' && s.phase === 'play') release(s, pid, ev);
     if (s.meeting) delete s.meeting.votes[pid];
     if (s.phase === 'play' || s.phase === 'meeting') checkWin(s, ev);
     return ev;
   }
 
   global.Rules = {
-    C: C, create: create, step: step, drop: drop,
+    C: C, create: create, step: step, drop: drop, pelGoal: pelGoal,
     progress: progress, counts: counts, tally: tally
   };
 })(window);

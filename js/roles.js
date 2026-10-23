@@ -29,10 +29,14 @@
 
   function impLimit(n) { return n >= 7 ? 2 : 1; }
 
-  function pick(pids, n, rand) {
+  /* 혼자 편인 펠리컨: 6명 이상이면 1명 */
+  function pelLimit(n) { return n >= 6 ? 1 : 0; }
+
+  function pick(pids, n, rand, pel) {
     var out = {}, a = shuffle(pids.slice(), rand);
     pids.forEach(function (p) { out[p] = 'crew'; });
     for (var i = 0; i < n && i < a.length; i++) out[a[i]] = 'imp';
+    for (var j = 0; j < (pel || 0) && n + j < a.length; j++) out[a[n + j]] = 'pel';
     return out;
   }
 
@@ -96,7 +100,7 @@
   }
 
   global.Roles = {
-    impLimit: impLimit, pick: pick, pickTasks: pickTasks,
+    impLimit: impLimit, pelLimit: pelLimit, pick: pick, pickTasks: pickTasks,
     makeKeys: makeKeys, seal: seal, open: open
   };
 })(window);

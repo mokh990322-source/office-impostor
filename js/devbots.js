@@ -146,7 +146,7 @@
           var victim = null;
           s.order.forEach(function (q) {
             var v = s.players[q];
-            if (q === b.pid || !v.alive || v.left || v.role !== 'crew') return;
+            if (q === b.pid || !v.alive || v.left || v.role === 'imp') return;
             if (Math.hypot(v.x - p.x, v.y - p.y) > C.KILL_R) return;
             var witnesses = s.order.filter(function (w) {
               var o = s.players[w];
@@ -175,6 +175,23 @@
         }
         return;
       }
+
+      /* 펠리컨: 보는 사람이 없으면 가까운 사람을 꿀꺽, 아니면 서성이기 */
+      if (p.role === 'pel' && p.alive && p.eatCd <= 0) {
+        var prey = null;
+        s.order.forEach(function (q) {
+          var v = s.players[q];
+          if (q === b.pid || !v.alive || v.left || v.vent) return;
+          if (Math.hypot(v.x - p.x, v.y - p.y) > C.KILL_R) return;
+          var seen = s.order.some(function (w) {
+            var o = s.players[w];
+            return w !== q && w !== b.pid && o.alive && !o.left && G.canSee(M, o.x, o.y, p.x, p.y, C.VISION_CREW);
+          });
+          if (!seen) prey = q;
+        });
+        if (prey) { cmds.push({ k: 'eat', a: prey }); return; }
+      }
+      if (p.eaten) return;
 
       /* 직원: 보이는 시체 신고 → 남은 임무 → 서성이기 */
       if (p.alive) {

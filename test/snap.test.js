@@ -54,7 +54,7 @@ test('결과에서 임포스터 공개', () => {
   const s = mk();
   R.drop(s, 'p1');
   const st = S.pack(s);
-  assert.deepEqual(st.w, { s: 'crew', y: 'vote', imps: ['p1'] });
+  assert.deepEqual(st.w, { s: 'crew', y: 'vote', imps: ['p1'], pel: [] });
 });
 
 test('서버 과열 남은 시간과 누른 패널', () => {

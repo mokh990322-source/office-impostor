@@ -143,6 +143,7 @@
     hideEject();
     var cv = h('canvas');
     var line = o.nobody ? '아무도 추방되지 않았습니다.' :
+      o.pel ? o.name + '님은 펠리컨이었습니다.' :
       o.name + '님은 임포스터' + (o.imp ? '였습니다.' : '가 아니었습니다.');
     var txt = h('h2', { text: '' });
     var sub = h('p', { text: '' });
@@ -255,20 +256,102 @@
     requestAnimationFrame(frame);
   }
 
+  /* 꿀꺽 장면 (삼켜진 사람 화면에만, 약 2.6초).
+     펠리컨(콩 + 커다란 주황 부리)이 부리를 쩍 벌리고, 나는 빨려 들어가 작아진다. */
+  function eatScene(layerEl, myColor, pelColor) {
+    if (killEl && killEl.parentNode) killEl.parentNode.removeChild(killEl);
+    var cv = h('canvas');
+    killEl = h('div', { class: 'kill-scene' }, [cv]);
+    layerEl.appendChild(killEl);
+    var me = killEl, dpr = global.devicePixelRatio || 1;
+    var W = (killEl.clientWidth || 800), H = (killEl.clientHeight || 600);
+    cv.width = W * dpr; cv.height = H * dpr;
+    var ctx = cv.getContext('2d'), t0 = performance.now(), DUR = 2.6;
+    var S = Math.min(W, H) / 120;
+    function ease(x) { return x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3); }
+    function beak(x, y, open) {
+      /* 위 부리는 들리고, 아래 부리 주머니는 처진다 */
+      ctx.save(); ctx.translate(x, y); ctx.scale(S, S);
+      ctx.lineWidth = 2.2; ctx.strokeStyle = '#0b0d12'; ctx.lineJoin = 'round';
+      ctx.save(); ctx.rotate(-open * 0.5);
+      ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.moveTo(0, -2); ctx.quadraticCurveTo(18, -6, 34, 0); ctx.lineTo(0, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.save(); ctx.rotate(open * 0.35);
+      ctx.fillStyle = '#ff7a1a'; ctx.beginPath(); ctx.moveTo(0, 2); ctx.lineTo(34, 2); ctx.quadraticCurveTo(22, 20 + open * 8, 4, 12); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+    }
+    function frame(now) {
+      if (killEl !== me) return;
+      var t = (now - t0) / 1000;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var g = ctx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, Math.max(W, H) * 0.7);
+      g.addColorStop(0, '#6b3a0a'); g.addColorStop(1, '#05060c');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      var floorY = H * 0.68;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, floorY, W, H - floorY);
+      ctx.fillStyle = '#0b0d12'; ctx.fillRect(0, floorY - 3, W, 6);
+
+      var px = W * 0.3, open = ease(t / 0.5) - ease((t - 1.15) / 0.2);
+      /* 펠리컨 */
+      var pc = pelColor();
+      ctx.save();
+      if (pc === null || pc === undefined) ctx.filter = 'brightness(0)';
+      UI.drawBean(ctx, px, floorY, S * 1.2, pc === null || pc === undefined ? 0 : pc, {});
+      ctx.restore();
+      var bx = px + S * 14, by = floorY - S * 22;   // 얼굴 창 오른쪽, 입 높이
+
+      /* 나: 0.5초부터 부리 쪽으로 빨려 들어간다 */
+      var k = ease((t - 0.5) / 0.6);
+      if (k < 1) {
+        var vx = W * 0.72 + (bx + S * 14 - W * 0.72) * k, vy = floorY + (by + S * 6 - floorY) * k;
+        ctx.save(); ctx.translate(vx, vy); ctx.rotate(-k * 4); ctx.scale(1 - k * 0.8, 1 - k * 0.8);
+        UI.drawBean(ctx, 0, 0, S, myColor, { flip: true, bob: k ? 0 : Math.abs(Math.sin(t * 20)) * S });
+        ctx.restore();
+      }
+      beak(bx, by, open);
+      /* 삼킨 뒤 목이 불룩 */
+      if (t > 1.15 && t < 2) {
+        var sw = Math.sin(Math.min(1, (t - 1.15) / 0.85) * Math.PI);
+        ctx.fillStyle = '#ff7a1a'; ctx.strokeStyle = '#0b0d12'; ctx.lineWidth = S * 1.2;
+        ctx.beginPath(); ctx.ellipse(bx + S * 6, by + S * 10, S * (4 + sw * 6), S * (3 + sw * 5), 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+
+      if (t > 1.2) {
+        var a = Math.min(1, (t - 1.2) / 0.3);
+        ctx.globalAlpha = a;
+        ctx.font = Math.round(S * 10) + 'px "Black Han Sans","Do Hyeon","Malgun Gothic",sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = S * 1.6; ctx.strokeStyle = '#0b0d12'; ctx.fillStyle = '#ffb347';
+        ctx.strokeText('꿀꺽!', W / 2, H * 0.2); ctx.fillText('꿀꺽!', W / 2, H * 0.2);
+        ctx.globalAlpha = 1;
+      }
+      if (t > DUR - 0.3) { killEl.style.opacity = String(Math.max(0, (DUR - t) / 0.3)); }
+      if (t >= DUR) { if (killEl && killEl.parentNode) killEl.parentNode.removeChild(killEl); killEl = null; return; }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
   var WHY = {
     tasks: '업무를 모두 끝냈습니다', vote: '임포스터를 모두 찾아냈습니다',
-    kill: '직원이 너무 많이 사라졌습니다', sab: '서버가 과열로 멈췄습니다'
+    kill: '직원이 너무 많이 사라졌습니다', sab: '서버가 과열로 멈췄습니다',
+    eat: '펠리컨이 배를 가득 채웠습니다'
   };
   function result(layerEl, o) {
     hideResult();
     resultEl = h('div', { class: 'result space' }, [
       o.mine ? h('div', { class: 'mine', style: { color: o.won ? '#5ff0ff' : '#ff5b5b' }, text: o.won ? '승리' : '패배' }) : null,
-      h('h1', { class: o.side, text: o.side === 'crew' ? '직원 승리' : '임포스터 승리' }),
+      h('h1', { class: o.side, text: o.side === 'crew' ? '직원 승리' : o.side === 'pel' ? '펠리컨 단독 승리' : '임포스터 승리' }),
       h('div', { class: 'why', text: WHY[o.why] || '' }),
       h('div', { class: 'label', text: '임포스터였던 사람' }),
       h('div', { class: 'imps' }, o.imps.map(function (p) {
         return h('div', {}, [h('span', { text: p.name }), UI.beanIcon(p.color, 96)]);
       })),
+      o.pels && o.pels.length ? h('div', { class: 'label', text: '펠리컨이었던 사람' }) : null,
+      o.pels && o.pels.length ? h('div', { class: 'pels' }, o.pels.map(function (p) {
+        return h('div', {}, [h('span', { text: p.name }), UI.beanIcon(p.color, 72)]);
+      })) : null,
       h('p', { class: 'hint', text: '잠시 뒤 대기실로 돌아가요.' })
     ]);
     layerEl.appendChild(resultEl);
@@ -277,6 +360,6 @@
 
   global.Meeting = {
     open: open, render: render, close: close, isOpen: isOpen,
-    splash: splash, eject: eject, hideEject: hideEject, result: result, hideResult: hideResult, killScene: killScene
+    splash: splash, eject: eject, hideEject: hideEject, result: result, hideResult: hideResult, killScene: killScene, eatScene: eatScene
   };
 })(window);

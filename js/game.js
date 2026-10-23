@@ -29,6 +29,7 @@
   function qnum(name, d) { var m = new RegExp('[?&]' + name + '=(\\d+)').exec(Q); return m ? +m[1] : d; }
   var MIN_PLAYERS = LOCAL ? Math.max(1, qnum('min', 4)) : 4;
   var FORCE_IMP = LOCAL && /[?&]me=imp\b/.test(Q);
+  var FORCE_PEL = LOCAL && /[?&]me=pel\b/.test(Q);
   var DevBots = global.DevBots;
 
   var $ = function (id) { return document.getElementById(id); };
@@ -246,21 +247,25 @@
     var w = who(), list = aliveList().filter(function (p) { return w[p] && w[p].pub; });
     if (list.length < MIN_PLAYERS) return;
     var nImp = Math.min(meta().imp || 1, Roles.impLimit(list.length));
-    var roles = Roles.pick(list, nImp);
-    if (FORCE_IMP && roles[S.pid] !== 'imp') {
-      var other = list.filter(function (p) { return roles[p] === 'imp'; })[0];
-      if (other) roles[other] = 'crew';
-      roles[S.pid] = 'imp';
+    var roles = Roles.pick(list, nImp, null, Roles.pelLimit(list.length));
+    function force(r) {
+      if (roles[S.pid] === r) return;
+      var other = list.filter(function (p) { return roles[p] === r; })[0];
+      if (other) roles[other] = roles[S.pid];
+      roles[S.pid] = r;
     }
+    if (FORCE_IMP) force('imp');
+    if (FORCE_PEL && Roles.pelLimit(list.length)) force('pel');
     var tasks = {};
     /* 임포스터는 일반 임무가 없다(가짜 임무도 없음). 대신 화면에 임포스터 전용 임무가 뜬다. */
-    list.forEach(function (p) { tasks[p] = roles[p] === 'imp' ? [] : Roles.pickTasks(M.stationIds(), C.TASKS_PER_PLAYER); });
+    list.forEach(function (p) { tasks[p] = roles[p] !== 'crew' ? [] : Roles.pickTasks(M.stationIds(), C.TASKS_PER_PLAYER); });
     S.boxes = {};
     var P = S.path;
     Promise.all([Net.del(P + '/st'), Net.del(P + '/sec'), Net.del(P + '/chat'), Net.del(P + '/in')]).then(function () {
       return Promise.all(list.map(function (p) {
         var mates = list.filter(function (q) { return roles[q] === 'imp' && q !== p; });
         var box = { r: roles[p], t: tasks[p], m: roles[p] === 'imp' ? mates : [] };
+        if (roles[p] === 'pel') box.g = R.pelGoal(list.length);
         S.boxes[p] = box;
         if (p === S.pid) { S.box = box; return null; }
         return Roles.seal(S.keys.priv, w[p].pub, box).then(function (sealed) { return Net.put(P + '/sec/' + p, sealed); });
@@ -291,12 +296,13 @@
     S.n = 0; S.lastK = ''; S.lastA = ''; S.sentAt = 0;
     S.doneLocal = {}; S.holding = ''; S.holdToggle = false; S.menu = false;
     S.secCt = null; S.impDone = {}; S.lastSab = '';
+    S.eatReadyAt = nowMs() + C.EAT_CD * 1000; S.eatSentAt = 0; S.eatSentTo = ''; S.eats = 0; S.wasEaten = false;
     S.killReadyAt = nowMs() + C.KILL_CD * 1000; S.sabReadyAt = nowMs() + C.SAB_FIRST * 1000;
     S.prevSb = null; S.prevPh = 'play'; S.wasAlive = true; S.banner = null; S.bannerUntil = 0;
     S.ejectShown = false; S.resultShown = false; S.meetingKey = '';
     if (S.box) roleBanner();
     Hud.init(hudEl, {
-      use: onUse, kill: onKill, report: onReport,
+      use: onUse, kill: onKill, report: onReport, eat: onEat,
       sabMenu: function () { S.menu = !S.menu; },
       sab: function (k) { doSab(k); }
     });
@@ -305,6 +311,11 @@
 
   function roleBanner() {
     var imp = S.box && S.box.r === 'imp';
+    if (S.box && S.box.r === 'pel') {
+      S.banner = { title: '펠리컨', sub: '혼자 편이에요. 몰래 ' + (S.box.g || 2) + '명을 삼키면 단독 승리! F 꿀꺽', color: '#ffb347' };
+      S.bannerUntil = nowMs() + 4500;
+      return;
+    }
     S.banner = imp
       ? { title: '임포스터', sub: '들키지 말고 직원을 줄이세요. Q 킬 · Tab 사보타주', color: '#ff4d4d' }
       : { title: '직원', sub: '업무를 끝내고 임포스터를 찾아내세요. E 사용 · R 신고', color: '#7fd3ff' };
@@ -353,6 +364,7 @@
     if (global.Tasks.isOpen()) return;
     if (e.code === 'KeyE' || e.code === 'Space') { e.preventDefault(); if (S.near && S.near.kind === 'panel') S.holdKey = true; else onUse(); }
     else if (e.code === 'KeyQ') onKill();
+    else if (e.code === 'KeyF') onEat();
     else if (e.code === 'KeyR') onReport();
   }
   function onKeyUp(e) {
@@ -387,6 +399,7 @@
   }
 
   function onKill() { if (S.killTarget) { sendCmd('kill', S.killTarget); S.killSentAt = nowMs(); S.killBodies = S.lastBodies || 0; } }
+  function onEat() { if (S.eatTarget) { sendCmd('eat', S.eatTarget); S.eatSentAt = nowMs(); S.eatSentTo = S.eatTarget; } }
   function onReport() { if (S.reportTarget) sendCmd('report', S.reportTarget); }
 
   function sendChat(text) {
@@ -402,7 +415,8 @@
     if (victim === S.pid) { if (S.box) S.box.k = killer; return; }
     var box = S.boxes && S.boxes[victim], w = who()[victim];
     if (!box || !w || !w.pub) return;
-    var nb = { r: box.r, t: box.t, m: box.m, k: killer };
+    var nb = { k: killer };
+    for (var key in box) if (key !== 'k' && Object.prototype.hasOwnProperty.call(box, key)) nb[key] = box[key];
     Roles.seal(S.keys.priv, w.pub, nb).then(function (sealed) { Net.put(S.path + '/sec/' + victim, sealed); });
   }
 
@@ -446,7 +460,7 @@
     ev = ev.concat(R.step(s, dt, inputs));
     ev.forEach(function (e) {
       if (e.type === 'meeting') Net.del(S.path + '/chat');
-      if (e.type === 'kill') tellVictim(e.pid, e.by);
+      if (e.type === 'kill' || e.type === 'eat') tellVictim(e.pid, e.by);
       if (e.type === 'end') { backToLobby(); }
     });
     if (!S.state) return;
@@ -490,11 +504,11 @@
       Hud.render({ wait: st.ph === 'result' ? '판이 끝났어요. 곧 대기실로 돌아가요.' : '게임이 진행 중이에요. 다음 판부터 함께해요.' });
       return;
     }
-    var alive = myP[2] === 1, inVent = myP[3] === 1;
+    var alive = myP[2] === 1, inVent = myP[3] === 1, eaten = myP[5] === 1;
 
     /* 이동 입력 */
     var playing = st.ph === 'play';
-    var inp = (!playing || global.Tasks.isOpen() || global.Meeting.isOpen()) ? { x: 0, y: 0 } : moveVector();
+    var inp = (!playing || eaten || global.Tasks.isOpen() || global.Meeting.isOpen()) ? { x: 0, y: 0 } : moveVector();
     S.myIn = inp;
     sendMove(inp.x, inp.y);
 
@@ -518,7 +532,7 @@
     var others = [], ref = st;
     var sample = (!host && S.buf) ? S.buf.sample(nowS) : null;
     Object.keys(st.p).forEach(function (pid) {
-      if (pid === S.pid) return;
+      if (pid === S.pid || st.p[pid][5] === 1) return;   // 뱃속 사람은 안 그린다
       var p = st.p[pid], pos = { x: p[0], y: p[1] };
       if (sample && sample.a.p && sample.b.p && sample.a.p[pid] && sample.b.p[pid]) pos = global.Interp.between(sample.a.p[pid], sample.b.p[pid], sample.k);
       others.push({ pid: pid, x: pos.x, y: pos.y, alive: p[2] === 1, vent: p[3] === 1, color: colorOf(pid), name: nameOf(pid),
@@ -536,16 +550,19 @@
     /* 쿨다운 추정 (참가자) */
     if (S.prevSb && !sb) S.sabReadyAt = now + C.SAB_CD * 1000;
     S.prevSb = sb;
-    if (S.prevPh === 'meeting' && st.ph === 'play') S.killReadyAt = now + C.KILL_CD * 1000;
+    if (S.prevPh === 'meeting' && st.ph === 'play') { S.killReadyAt = now + C.KILL_CD * 1000; S.eatReadyAt = now + C.EAT_CD * 1000; }
+    if (S.eatSentAt && now - S.eatSentAt < 1500 && st.p[S.eatSentTo] && st.p[S.eatSentTo][5] === 1) { S.eatReadyAt = now + C.EAT_CD * 1000; S.eatSentAt = 0; S.eats++; }
     if (S.killSentAt && now - S.killSentAt < 1500 && bodies.length > S.killBodies) { S.killReadyAt = now + C.KILL_CD * 1000; S.killSentAt = 0; S.impDone.kill = true; }
     if (role === 'imp' && inVent) S.impDone.vent = true;
     if (role === 'imp' && sb && sb.k === S.lastSab) S.impDone[sb.k] = true;
-    var killCd, sabCd;
+    var killCd, sabCd, eatCd;
     if (host && S.state) {
       killCd = S.state.players[S.pid].killCd;
+      eatCd = S.state.players[S.pid].eatCd; S.eats = S.state.players[S.pid].eats;
       sabCd = Math.max(0, S.state.sabCdUntil - S.state.t);
     } else {
       killCd = Math.max(0, (S.killReadyAt - now) / 1000);
+      eatCd = Math.max(0, (S.eatReadyAt - now) / 1000);
       sabCd = Math.max(0, (S.sabReadyAt - now) / 1000);
     }
 
@@ -557,7 +574,7 @@
     }
     var myTasks = {};
     if (box) box.t.forEach(function (id) { if (!S.doneLocal[id] && !(host && S.state.players[S.pid].done[id])) myTasks[id] = true; });
-    if (playing) {
+    if (playing && !eaten) {
       if (inVent) {
         var cur = null;
         M.objects.forEach(function (o) { if (o.kind === 'vent' && dist(M.center(o), server) < 6) cur = o; });
@@ -581,7 +598,16 @@
     if (want !== S.holding) { S.holding = want; sendCmd('hold', want); if (!want) S.holdToggle = false; }
 
     /* 킬·신고 대상 */
-    S.killTarget = null; S.reportTarget = null;
+    S.killTarget = null; S.reportTarget = null; S.eatTarget = null;
+    if (playing && role === 'pel' && alive && eatCd <= 0) {
+      var bestE = null;
+      others.forEach(function (o) {
+        if (!o.alive || o.vent) return;
+        var d = dist(S.me, o);
+        if (d <= C.KILL_R && visible(o.x, o.y) && (!bestE || d < bestE.d)) bestE = { pid: o.pid, d: d };
+      });
+      S.eatTarget = bestE && bestE.pid;
+    }
     if (playing && role === 'imp' && alive && !inVent && killCd <= 0) {
       var bestK = null;
       others.forEach(function (o) {
@@ -598,24 +624,36 @@
     }
 
     /* 죽음 안내 */
-    if (S.wasAlive && !alive && st.ph === 'play') {
+    if (S.wasAlive && !alive && st.ph === 'play' && eaten) {
+      global.Tasks.close();
+      global.Meeting.eatScene(layerEl, colorOf(S.pid), function () { return S.box && S.box.k ? colorOf(S.box.k) : null; });
+      S.banner = { title: '꿀꺽!', sub: '', color: '#ffb347' };
+      S.bannerUntil = now + 5500;
+    } else if (!S.wasAlive && alive && S.wasEaten && st.ph === 'play') {
+      S.banner = { title: '풀려났어요!', sub: '펠리컨이 쓰러져서 뱃속에서 나왔어요.', color: '#7fffa0' };
+      S.bannerUntil = now + 4000;
+    } else if (S.wasAlive && !alive && st.ph === 'play') {
       global.Tasks.close();
       var myColor = colorOf(S.pid);
       global.Meeting.killScene(layerEl, myColor, function () { return S.box && S.box.k ? colorOf(S.box.k) : null; });
       S.banner = { title: '당신은 죽었습니다', sub: role === 'imp' ? '유령으로 사보타주는 계속 걸 수 있어요.' : '유령으로 남은 임무를 계속할 수 있어요.', color: '#cfd6e6' };
       S.bannerUntil = now + 5500;
     }
-    S.wasAlive = alive;
+    S.wasAlive = alive; S.wasEaten = eaten;
 
     /* 그리기. 그리기가 실패해도(캔버스 크기 문제 등) 아래 HUD·회의 화면은 계속 돌아야 한다.
        한 번 여기서 던지면 회의가 시작돼도 회의 화면이 영영 안 열린다. */
     try { View.draw({
       me: S.me, alive: alive, role: role, vision: vision, sab: sb, near: near && near.id, tasks: myTasks, t: nowS,
       bodies: bodies,
-      players: others.concat([{ pid: S.pid, self: true, x: S.me.x, y: S.me.y, alive: alive, vent: inVent, color: colorOf(S.pid), name: nameOf(S.pid), red: role === 'imp' }])
+      players: eaten ? others : others.concat([{ pid: S.pid, self: true, x: S.me.x, y: S.me.y, alive: alive, vent: inVent, color: colorOf(S.pid), name: nameOf(S.pid), red: role === 'imp' }])
     }); } catch (e) { if (global.console) console.error(e); }
 
-    var taskList = !box ? [] : role === 'imp' ? [
+    var goal = (box && box.g) || 2;
+    var taskList = !box ? [] : role === 'pel' ? [
+      { text: '몰래 삼키기 (F) ' + Math.min(S.eats, goal) + '/' + goal, done: S.eats >= goal },
+      { text: '회의에서 들키지 않기', done: false }
+    ] : role === 'imp' ? [
       { text: '정전 일으키기 (Tab → 1)', done: !!S.impDone.lights },
       { text: '서버 과열 일으키기 (Tab → 2)', done: !!S.impDone.reactor },
       { text: '환풍구 타 보기 (환풍구 위에서 E)', done: !!S.impDone.vent },
@@ -631,13 +669,14 @@
       alert = { cls: 'reactor', text: '서버 과열! ' + Math.floor(sb.r / 60) + ':' + ('0' + (sb.r % 60)).slice(-2) + ' — 서버실·렌더팜 패널을 동시에 누르세요 (' + held + '/2)' };
     }
     Hud.render({
-      role: role, ghost: !alive,
+      role: role, ghost: !alive, eaten: eaten && playing,
       mates: role === 'imp' && box ? box.m.map(nameOf) : [],
       tasks: taskList, progress: (st.tp || 0) / 1000,
       use: { on: !!(near && near.on), label: near ? near.label : '사용' },
       report: { on: !!S.reportTarget },
       kill: { show: role === 'imp' && alive, on: !!S.killTarget, cd: killCd },
-      sab: { show: role === 'imp', on: playing && !sb && sabCd <= 0, cd: sb ? 0 : sabCd },
+      eat: { show: role === 'pel' && alive, on: !!S.eatTarget, cd: eatCd },
+      sab: { show: role === 'imp' && !eaten, on: playing && !sb && sabCd <= 0, cd: sb ? 0 : sabCd },
       menu: S.menu && role === 'imp',
       alert: playing ? alert : null,
       vent: inVent && playing ? '환풍구 안 — E: 연결된 환풍구로 이동 · 방향키: 나가기' : null,
@@ -679,7 +718,7 @@
       if (st.m.s === 'reveal' && !S.ejectShown) {
         S.ejectShown = true;
         var e = st.m.e;
-        var info = e ? { name: nameOf(e), color: colorOf(e), imp: st.m.ei === 1, impsLeft: st.m.il } : { nobody: true, impsLeft: st.m.il };
+        var info = e ? { name: nameOf(e), color: colorOf(e), imp: st.m.ei === 1, pel: st.m.ep === 1, impsLeft: st.m.il } : { nobody: true, impsLeft: st.m.il };
         setTimeout(function () { if (Mt.isOpen()) Mt.eject(layerEl, info); }, 900);
       }
     } else if (Mt.isOpen()) {
@@ -690,8 +729,9 @@
       Mt.close(); global.Tasks.close();
       var mine = S.box ? S.box.r : null;
       Mt.result(layerEl, {
-        side: st.w.s, why: st.w.y, mine: !!mine, won: mine === (st.w.s === 'crew' ? 'crew' : 'imp'),
-        imps: st.w.imps.map(function (p) { return { name: nameOf(p), color: colorOf(p) }; })
+        side: st.w.s, why: st.w.y, mine: !!mine, won: mine === st.w.s,
+        imps: st.w.imps.map(function (p) { return { name: nameOf(p), color: colorOf(p) }; }),
+        pels: st.w.pel.map(function (p) { return { name: nameOf(p), color: colorOf(p) }; })
       });
     }
   }

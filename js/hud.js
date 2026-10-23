@@ -22,6 +22,7 @@
     use: '<circle cx="50" cy="50" r="44" fill="#eef2f7" stroke="#0b0d12" stroke-width="6"/><path d="M38 70V40a6 6 0 0 1 12 0v18-24a6 6 0 0 1 12 0v24-18a6 6 0 0 1 11 0v26c0 12-8 20-20 20h-3c-7 0-12-3-16-9l-8-13a6 6 0 0 1 10-6z" fill="#ffd27a" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/>',
     report: '<circle cx="50" cy="50" r="44" fill="#ff8a1e" stroke="#0b0d12" stroke-width="6"/><path d="M24 44h14l26-16v44L38 56H24z" fill="#eef2f7" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M72 40q8 10 0 20" fill="none" stroke="#0b0d12" stroke-width="5" stroke-linecap="round"/>',
     kill: '<circle cx="50" cy="50" r="44" fill="#e5383b" stroke="#0b0d12" stroke-width="6"/><path d="M30 72l30-36 8 2-2 8-36 30z" fill="#eef2f7" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M62 34l10-10 6 6-10 10" fill="#7a4a24" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/>',
+    eat: '<circle cx="50" cy="50" r="44" fill="#ffb347" stroke="#0b0d12" stroke-width="6"/><path d="M18 42q30-22 66-4l-36 10z" fill="#ffd27a" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M20 50l28 4 34-8q-6 30-32 30q-24 0-30-26z" fill="#ff7a1a" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><circle cx="30" cy="36" r="4" fill="#0b0d12"/>',
     sab: '<circle cx="50" cy="50" r="44" fill="#8b4ee8" stroke="#0b0d12" stroke-width="6"/><path d="M50 22l26 48H24z" fill="#ffde3b" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M50 40v14" stroke="#0b0d12" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="62" r="3.5" fill="#0b0d12"/>'
   };
   function icon(cls) {
@@ -54,7 +55,8 @@
     el.report = act('report', '신고', 'R', function () { if (hd.report) hd.report(); });
     el.kill = act('kill', '킬', 'Q', function () { if (hd.kill) hd.kill(); });
     el.sab = act('sab', '사보타주', 'Tab', function () { if (hd.sabMenu) hd.sabMenu(); });
-    el.btns = h('div', { class: 'hud-btns' }, [el.sab, el.kill, el.report, el.use]);
+    el.eat = act('eat', '꿀꺽', 'F', function () { if (hd.eat) hd.eat(); });
+    el.btns = h('div', { class: 'hud-btns' }, [el.sab, el.kill, el.eat, el.report, el.use]);
     el.menu = h('div', { class: 'menu', style: { display: 'none' } }, [
       h('div', { class: 't', text: '사보타주 — 1·2 키로 바로 걸기, Tab 으로 닫기' }),
       el.mLights = h('button', { onclick: function () { if (hd.sab) hd.sab('lights'); } }, ['1  정전 (직원 시야 줄이기)']),
@@ -66,7 +68,11 @@
     el.edge = h('div', { class: 'redge', style: { display: 'none' } });
     el.banner = h('div', { class: 'banner', style: { display: 'none' } }, [el.bTitle = h('h1'), el.bSub = h('p')]);
     el.wait = h('div', { class: 'wait', style: { display: 'none' } });
-    [el.edge, el.top, el.left, el.btns, el.menu, el.alert, el.vent, el.banner, el.wait].forEach(function (n) { root.appendChild(n); });
+    el.belly = h('div', { class: 'belly', style: { display: 'none' } }, [
+      h('h2', { text: '펠리컨 뱃속' }),
+      h('p', { text: '다음 회의가 열리면 소화돼요. 그 전에 펠리컨이 처치되면 풀려나요.' })
+    ]);
+    [el.belly, el.edge, el.top, el.left, el.btns, el.menu, el.alert, el.vent, el.banner, el.wait].forEach(function (n) { root.appendChild(n); });
   }
 
   function button(b, key, o) {
@@ -86,13 +92,16 @@
     var bw = Math.round((v.progress || 0) * 1000) / 10 + '%';
     if (last.bar !== bw) { last.bar = bw; el.bar.style.width = bw; }
 
-    var roleTxt = v.role === 'imp' ? '임포스터' + (v.mates && v.mates.length ? ' · 동료: ' + v.mates.join(', ') : '')
+    var roleTxt = v.role === 'pel' ? '펠리컨 — 혼자 편, 몰래 삼키세요' : v.role === 'imp' ? '임포스터' + (v.mates && v.mates.length ? ' · 동료: ' + v.mates.join(', ') : '')
       : v.role === 'crew' ? '직원 — 업무를 끝내고 임포스터를 찾으세요' : '역할 받는 중…';
-    if (v.ghost) roleTxt = '유령 — ' + (v.role === 'imp' ? '사보타주만 할 수 있어요' : '남은 임무를 계속하세요');
+    if (v.ghost) roleTxt = '유령 — ' + (v.role === 'imp' ? '사보타주만 할 수 있어요' : v.role === 'pel' ? '구경만 할 수 있어요' : '남은 임무를 계속하세요');
+    if (v.eaten) roleTxt = '펠리컨 뱃속에 갇혔어요';
     setText(el.role, 'role', roleTxt);
     var rc = 'role ' + (v.role || '');
     if (last.rc !== rc) { last.rc = rc; el.role.className = rc; }
-    show(el.fake, 'fake', v.role === 'imp');
+    show(el.fake, 'fake', v.role === 'imp' || v.role === 'pel');
+    setText(el.fake, 'fakeT', v.role === 'pel' ? '펠리컨 임무 — 직원 업무는 없어요. 진행 바는 직원들 것이에요.' : '임포스터 임무 — 들키지 않는 게 먼저예요. 승패와는 상관없어요.');
+    show(el.belly, 'belly', !!v.eaten);
     var tk = JSON.stringify(v.tasks || []);
     if (last.tasks !== tk) {
       last.tasks = tk; UI.clear(el.tasks);
@@ -102,6 +111,7 @@
     button(el.use, 'use', { on: v.use && v.use.on, label: (v.use && v.use.label) || '사용' });
     button(el.report, 'rep', { on: v.report && v.report.on, show: !v.ghost });
     button(el.kill, 'kill', { on: v.kill && v.kill.on, show: v.kill && v.kill.show, cd: v.kill && v.kill.cd });
+    button(el.eat, 'eat', { on: v.eat && v.eat.on, show: v.eat && v.eat.show, cd: v.eat && v.eat.cd });
     button(el.sab, 'sab', { on: v.sab && v.sab.on, show: v.sab && v.sab.show, cd: v.sab && v.sab.cd });
 
     show(el.menu, 'menu', !!(v.menu && v.sab && v.sab.show));

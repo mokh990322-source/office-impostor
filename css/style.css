@@ -110,7 +110,7 @@ canvas.bean { flex: none; }
 .hud-left { position: absolute; top: 14px; left: 14px; width: 270px; background: rgba(160,170,185,.82); color: var(--ink);
   border: var(--line); border-radius: 12px; padding: 0 0 8px; overflow: hidden; box-shadow: 0 4px 0 var(--ink); }
 .hud-left .role { font-family: var(--display); font-size: 17px; padding: 8px 12px; background: #e8edf3; border-bottom: var(--line); }
-.hud-left .role.imp { background: var(--red); color: #fff; } .hud-left .role.crew { background: #e8edf3; }
+.hud-left .role.imp { background: var(--red); color: #fff; } .hud-left .role.pel { background: #ff9f1c; color: #fff; } .hud-left .role.crew { background: #e8edf3; }
 .hud-left .fake { color: #8a0f16; font-size: 14px; padding: 6px 12px 0; }
 .hud-left ul { list-style: none; padding: 6px 12px 0; margin: 0; }
 .hud-left li { padding: 2px 0; font-size: 16px; } .hud-left li.done { color: #127a24; }
@@ -124,6 +124,13 @@ canvas.bean { flex: none; }
 .act span { font-size: 20px; margin-top: -8px; }
 .act small { display: block; position: absolute; top: 2px; right: 4px; background: #fff; color: var(--ink); border: 2px solid var(--ink);
   border-radius: 7px; font-family: var(--display); font-size: 13px; line-height: 1; padding: 3px 6px; box-shadow: 0 2px 0 var(--ink); }
+.belly { position: absolute; inset: 0; z-index: 5; pointer-events: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 18vh;
+  background: radial-gradient(ellipse at center, #5a1420 0%, #2a050b 55%, #120104 100%); }
+.belly h2 { font-family: var(--display); font-size: 46px; color: #ffb347; -webkit-text-stroke: 2px var(--ink); margin: 0 0 8px; }
+.belly p { color: #ffe1d6; font-size: 18px; margin: 0; text-shadow: 0 2px 0 #000; }
+.result .pels { display: flex; gap: 24px; justify-content: center; }
+.result .pels > div { display: flex; flex-direction: column; align-items: center; color: #ffb347; font-family: var(--display); font-size: 20px; }
+.result h1.pel { color: #ffb347; }
 .kill-scene { position: absolute; inset: 0; z-index: 60; background: #05060c; }
 .kill-scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .act:disabled { opacity: .35; }

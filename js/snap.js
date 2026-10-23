@@ -23,7 +23,7 @@
     s.order.forEach(function (pid) {
       var p = s.players[pid];
       if (p.left) return;
-      o.p[pid] = [Math.round(p.x), Math.round(p.y), p.alive ? 1 : 0, p.vent ? 1 : 0, p.btnLeft];
+      o.p[pid] = [Math.round(p.x), Math.round(p.y), p.alive ? 1 : 0, p.vent ? 1 : 0, p.btnLeft, p.eaten ? 1 : 0];
     });
     s.bodies.forEach(function (b) { o.b.push([b.pid, Math.round(b.x), Math.round(b.y)]); });
     var pr = R.progress(s);
@@ -39,11 +39,12 @@
       var m = s.meeting;
       o.m = { by: m.by, bd: m.body || '', s: m.stage, r: left(m.until, s.t), v: Object.keys(m.votes) };
       if (m.stage === 'reveal') {
-        o.m.vt = m.votes; o.m.e = m.ejected || ''; o.m.ei = m.ejectedImp ? 1 : 0; o.m.il = m.impsLeft;
+        o.m.vt = m.votes; o.m.e = m.ejected || ''; o.m.ei = m.ejectedImp ? 1 : 0; o.m.ep = m.ejectedPel ? 1 : 0; o.m.il = m.impsLeft;
       }
     }
     if (s.winner) {
-      o.w = { s: s.winner, y: s.why, imps: s.order.filter(function (pid) { return s.players[pid].role === 'imp'; }) };
+      o.w = { s: s.winner, y: s.why, imps: s.order.filter(function (pid) { return s.players[pid].role === 'imp'; }),
+        pel: s.order.filter(function (pid) { return s.players[pid].role === 'pel'; }) };
     }
     return o;
   }
@@ -70,7 +71,7 @@
       o.m = m;
     }
     if (o.sb && o.sb.k === 'reactor') { o.sb = { k: 'reactor', r: o.sb.r || 0, h: o.sb.h || [0, 0] }; }
-    if (o.w) o.w = { s: o.w.s, y: o.w.y, imps: o.w.imps || [] };
+    if (o.w) o.w = { s: o.w.s, y: o.w.y, imps: o.w.imps || [], pel: o.w.pel || [] };
     return o;
   }
 
