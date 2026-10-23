@@ -14,7 +14,7 @@
      이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
   var COLORS = [
     { name: 'NEW정균',    hex: '#ff5252', face: 1 },
-    { name: '박사장',       hex: '#ffa726', face: 2 },
+    { name: '박사장',       hex: '#ff8fd0', face: 2 },
     { name: '스펀지송',       hex: '#ffee58', face: 3 },
     { name: '나 주희 아님', hex: '#66bb6a', face: 4 },
     { name: '서지훈남',    hex: '#26c6da', face: 5 },
