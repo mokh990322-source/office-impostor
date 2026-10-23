@@ -13,18 +13,18 @@
      규칙·저장 값이 어긋나니 뒤에 붙이기만 할 것.
      이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
   var COLORS = [
-    { name: '숭한 라이언',    hex: '#ff5252', face: 1 },
+    { name: 'NEW정균',    hex: '#ff5252', face: 1 },
     { name: '박팀장님',       hex: '#ffa726', face: 2 },
-    { name: '송마라톤',       hex: '#ffee58', face: 3 },
-    { name: '내가 진짜 주희', hex: '#66bb6a', face: 4 },
-    { name: '서론 머스크',    hex: '#26c6da', face: 5 },
-    { name: '모탄소년단',     hex: '#5c6bc0', face: 6 },
+    { name: '스펀지송',       hex: '#ffee58', face: 3 },
+    { name: '나 주희 아님', hex: '#66bb6a', face: 4 },
+    { name: '서지훈남',    hex: '#26c6da', face: 5 },
+    { name: '모몽가',     hex: '#5c6bc0', face: 6 },
     { name: '치이카와',       hex: '#ab47bc', face: 7 },
     { name: '누렁이',         hex: '#ec407a', face: 8 },
     /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
        사진은 나중에 받기로 함(2026-10-22). */
-    { name: '견현호',         hex: '#8d6e63', face: 9 },
-    { name: '김선호',         hex: '#c0ca33', face: 10 }
+    { name: '호현견',         hex: '#8d6e63', face: 9 },
+    { name: '선호합니다',         hex: '#c0ca33', face: 10 }
   ];
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
