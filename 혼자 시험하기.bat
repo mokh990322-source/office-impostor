@@ -1,5 +1,5 @@
 @echo off
-title 사무실 임포스터 - 혼자 시험 (봇 5명)
+title 모몽어스 - 혼자 시험 (봇 5명)
 cd /d "%~dp0"
 
 echo.

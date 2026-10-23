@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-사무실 임포스터 — 사내망 서버
+모몽어스 — 사내망 서버
 
 방장 PC 에서 켠다. 두 가지 일을 한다.
   1) 게임 파일(index.html, js, css, img)을 내준다.  http://<이 PC 주소>:8898/
@@ -246,7 +246,7 @@ def run_gui(httpd, port, selftest=False):
 
     urls = ['http://%s:%d/' % (ip, port) for ip in lan_addresses()]
     root = tk.Tk()
-    root.title('사무실 임포스터 — 사내망 서버')
+    root.title('모몽어스 — 사내망 서버')
     root.configure(bg='#1d2230')
     root.geometry('520x360')
     font = ('Malgun Gothic', 11)
@@ -313,7 +313,7 @@ def main():
             print(msg)
         else:
             import tkinter.messagebox as mb
-            mb.showerror('사무실 임포스터', msg)
+            mb.showerror('모몽어스', msg)
         sys.exit(1)
     if headless:
         print('READY', port, flush=True)

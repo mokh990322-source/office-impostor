@@ -83,5 +83,5 @@ test('스트림: 처음엔 전체, 이후엔 상대 경로로 바뀐 것만', as
 test('게임 파일도 내준다', async (t) => {
   if (skip) return t.skip('python 없음');
   const html = await fetch(BASE + '/').then(r => r.text());
-  assert.ok(html.includes('사무실 임포스터'));
+  assert.ok(html.includes('모몽어스'));
 });

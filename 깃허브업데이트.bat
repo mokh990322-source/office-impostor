@@ -1,5 +1,5 @@
 @echo off
-title 사무실 임포스터 - 깃허브에 올리기
+title 모몽어스 - 깃허브에 올리기
 cd /d "%~dp0"
 set PATH=%PATH%;C:\Program Files\GitHub CLI
 
