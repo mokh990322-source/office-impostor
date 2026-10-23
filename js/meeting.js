@@ -177,6 +177,84 @@
     if (ejectEl && ejectEl.parentNode) ejectEl.parentNode.removeChild(ejectEl); ejectEl = null;
   }
 
+  /* 처형 장면 (죽은 사람 화면에만, 약 2.6초).
+     범인이 왼쪽에서 달려들어 칼로 찌르고, 나는 쓰러져 시체가 된다.
+     killerColor() 는 범인 색 번호를 돌려준다. 봉투가 아직 안 왔으면 null → 검은 그림자로 그린다. */
+  var killEl = null;
+  function killScene(layerEl, myColor, killerColor) {
+    if (killEl && killEl.parentNode) killEl.parentNode.removeChild(killEl);
+    var cv = h('canvas');
+    killEl = h('div', { class: 'kill-scene' }, [cv]);
+    layerEl.appendChild(killEl);
+    var me = killEl, dpr = global.devicePixelRatio || 1;
+    var W = (killEl.clientWidth || 800), H = (killEl.clientHeight || 600);
+    cv.width = W * dpr; cv.height = H * dpr;
+    var ctx = cv.getContext('2d'), t0 = performance.now(), DUR = 2.6;
+    var S = Math.min(W, H) / 120;               // 콩 배율
+    function ease(x) { return x < 0 ? 0 : x > 1 ? 1 : 1 - Math.pow(1 - x, 3); }
+    function knife(x, y, s, ang) {
+      ctx.save(); ctx.translate(x, y); ctx.rotate(ang); ctx.scale(s, s);
+      ctx.lineWidth = 2.5; ctx.strokeStyle = '#0b0d12'; ctx.lineJoin = 'round';
+      ctx.fillStyle = '#7a4a24'; ctx.beginPath(); ctx.rect(-14, -3, 12, 6); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#e8eef5'; ctx.beginPath(); ctx.moveTo(-2, -5); ctx.lineTo(22, -1); ctx.lineTo(24, 1); ctx.lineTo(-2, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
+    function frame(now) {
+      if (killEl !== me) return;
+      var t = (now - t0) / 1000;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      /* 배경: 검붉은 방사형 + 바닥 띠 */
+      var g = ctx.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, Math.max(W, H) * 0.7);
+      g.addColorStop(0, '#5a0d12'); g.addColorStop(1, '#05060c');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      var floorY = H * 0.68;
+      ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, floorY, W, H - floorY);
+      ctx.fillStyle = '#0b0d12'; ctx.fillRect(0, floorY - 3, W, 6);
+
+      var vx = W * 0.6, kx0 = -W * 0.2, kx1 = W * 0.42;
+      var kx = kx0 + (kx1 - kx0) * ease((t - 0.25) / 0.45);
+      var hit = t >= 0.8;
+
+      /* 나: 찔리기 전엔 서 있고, 찔리면 흔들리다 쓰러진다 */
+      if (t < 1.25) {
+        var shake = hit ? Math.sin(t * 90) * 4 * (1.25 - t) : 0;
+        UI.drawBean(ctx, vx + shake, floorY, S, myColor, { flip: true });
+      } else {
+        UI.drawBody(ctx, vx, floorY, S, myColor);
+      }
+
+      /* 범인 */
+      var kc = killerColor();
+      ctx.save();
+      if (kc === null || kc === undefined) ctx.filter = 'brightness(0)';
+      UI.drawBean(ctx, kx, floorY, S, kc === null || kc === undefined ? 0 : kc, { bob: t < 0.7 ? Math.abs(Math.sin(t * 20)) * S * 2 : 0, walk: t < 0.7 ? t * 20 : null });
+      ctx.restore();
+      if (t > 0.55) {
+        var thrust = ease((t - 0.6) / 0.2) - ease((t - 1.0) / 0.3) * 0.6;
+        knife(kx + S * 14 + thrust * S * 14, floorY - S * 10, S * 0.9, 0);   // 손 높이 (얼굴을 가리지 않게)
+      }
+
+      /* 찌르는 순간 번쩍 */
+      if (t > 0.8 && t < 0.95) { ctx.fillStyle = 'rgba(255,255,255,' + (1 - (t - 0.8) / 0.15).toFixed(2) + ')'; ctx.fillRect(0, 0, W, H); }
+
+      /* 글씨 */
+      if (t > 1.4) {
+        var a = Math.min(1, (t - 1.4) / 0.3);
+        ctx.globalAlpha = a;
+        ctx.font = Math.round(S * 9) + 'px "Black Han Sans","Do Hyeon","Malgun Gothic",sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+        ctx.lineWidth = S * 1.6; ctx.strokeStyle = '#0b0d12'; ctx.fillStyle = '#ff4d4d';
+        ctx.strokeText('처치당했습니다', W / 2, H * 0.22); ctx.fillText('처치당했습니다', W / 2, H * 0.22);
+        ctx.globalAlpha = 1;
+      }
+      /* 끝: 서서히 사라짐 */
+      if (t > DUR - 0.3) { killEl.style.opacity = String(Math.max(0, (DUR - t) / 0.3)); }
+      if (t >= DUR) { if (killEl && killEl.parentNode) killEl.parentNode.removeChild(killEl); killEl = null; return; }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
   var WHY = {
     tasks: '업무를 모두 끝냈습니다', vote: '임포스터를 모두 찾아냈습니다',
     kill: '직원이 너무 많이 사라졌습니다', sab: '서버가 과열로 멈췄습니다'
@@ -199,6 +277,6 @@
 
   global.Meeting = {
     open: open, render: render, close: close, isOpen: isOpen,
-    splash: splash, eject: eject, hideEject: hideEject, result: result, hideResult: hideResult
+    splash: splash, eject: eject, hideEject: hideEject, result: result, hideResult: hideResult, killScene: killScene
   };
 })(window);

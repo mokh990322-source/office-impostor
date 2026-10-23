@@ -294,3 +294,11 @@ test('OfficeMap.tableDist: 탁자 안 0, 바깥은 가장자리까지 거리', (
   assert.equal(M.tableDist((tb.x0 + 1) * T, (tb.y0 + 1) * T), 0);
   assert.equal(M.tableDist(tb.x0 * T - 30, (tb.y0 + 1) * T), 30);
 });
+
+test('킬 이벤트에 누가 죽였는지 실린다 (방장이 죽은 사람에게만 봉투로 알려 준다)', () => {
+  const s = mk(5, ['p1']);
+  s.players.p1.killCd = 0;
+  at(s, 'p1', 23.5 * 32, 17.5 * 32); at(s, 'p2', 23.5 * 32 + 20, 17.5 * 32);
+  const ev = cmd(s, 'p1', 'kill', 'p2');
+  assert.ok(ev.some(e => e.type === 'kill' && e.pid === 'p2' && e.by === 'p1'));
+});

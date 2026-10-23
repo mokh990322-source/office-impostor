@@ -47,7 +47,7 @@
     ]);
     el.left = h('div', { class: 'hud-left' }, [
       el.role = h('div', { class: 'role' }),
-      el.fake = h('div', { class: 'fake', text: '가짜 임무 — 하는 척만 하세요. 진행 바는 안 올라가요.' }),
+      el.fake = h('div', { class: 'fake', text: '임포스터 임무 — 들키지 않는 게 먼저예요. 승패와는 상관없어요.' }),
       el.tasks = h('ul')
     ]);
     el.use = act('use', '사용', 'E', function () { if (hd.use) hd.use(); });
@@ -56,9 +56,9 @@
     el.sab = act('sab', '사보타주', 'Tab', function () { if (hd.sabMenu) hd.sabMenu(); });
     el.btns = h('div', { class: 'hud-btns' }, [el.sab, el.kill, el.report, el.use]);
     el.menu = h('div', { class: 'menu', style: { display: 'none' } }, [
-      h('div', { class: 't', text: '사보타주 (Tab 으로 닫기)' }),
-      el.mLights = h('button', { onclick: function () { if (hd.sab) hd.sab('lights'); } }, ['정전 (직원 시야 줄이기)']),
-      el.mReactor = h('button', { class: 'danger', onclick: function () { if (hd.sab) hd.sab('reactor'); } }, ['서버 과열 (45초 안에 못 막으면 승리)']),
+      h('div', { class: 't', text: '사보타주 — 1·2 키로 바로 걸기, Tab 으로 닫기' }),
+      el.mLights = h('button', { onclick: function () { if (hd.sab) hd.sab('lights'); } }, ['1  정전 (직원 시야 줄이기)']),
+      el.mReactor = h('button', { class: 'danger', onclick: function () { if (hd.sab) hd.sab('reactor'); } }, ['2  서버 과열 (45초 안에 못 막으면 승리)']),
       el.mNote = h('div', { class: 't' })
     ]);
     el.alert = h('div', { class: 'alert', style: { display: 'none' } });

@@ -253,12 +253,15 @@
       roles[S.pid] = 'imp';
     }
     var tasks = {};
-    list.forEach(function (p) { tasks[p] = Roles.pickTasks(M.stationIds(), C.TASKS_PER_PLAYER); });
+    /* 임포스터는 일반 임무가 없다(가짜 임무도 없음). 대신 화면에 임포스터 전용 임무가 뜬다. */
+    list.forEach(function (p) { tasks[p] = roles[p] === 'imp' ? [] : Roles.pickTasks(M.stationIds(), C.TASKS_PER_PLAYER); });
+    S.boxes = {};
     var P = S.path;
     Promise.all([Net.del(P + '/st'), Net.del(P + '/sec'), Net.del(P + '/chat'), Net.del(P + '/in')]).then(function () {
       return Promise.all(list.map(function (p) {
         var mates = list.filter(function (q) { return roles[q] === 'imp' && q !== p; });
         var box = { r: roles[p], t: tasks[p], m: roles[p] === 'imp' ? mates : [] };
+        S.boxes[p] = box;
         if (p === S.pid) { S.box = box; return null; }
         return Roles.seal(S.keys.priv, w[p].pub, box).then(function (sealed) { return Net.put(P + '/sec/' + p, sealed); });
       }));
@@ -287,6 +290,7 @@
     S.buf = new global.Interp.Buffer(); S.st = null; S.me = null;
     S.n = 0; S.lastK = ''; S.lastA = ''; S.sentAt = 0;
     S.doneLocal = {}; S.holding = ''; S.holdToggle = false; S.menu = false;
+    S.secCt = null; S.impDone = {}; S.lastSab = '';
     S.killReadyAt = nowMs() + C.KILL_CD * 1000; S.sabReadyAt = nowMs() + C.SAB_FIRST * 1000;
     S.prevSb = null; S.prevPh = 'play'; S.wasAlive = true; S.banner = null; S.bannerUntil = 0;
     S.ejectShown = false; S.resultShown = false; S.meetingKey = '';
@@ -294,7 +298,7 @@
     Hud.init(hudEl, {
       use: onUse, kill: onKill, report: onReport,
       sabMenu: function () { S.menu = !S.menu; },
-      sab: function (k) { S.menu = false; sendCmd('sab', k); S.sabReadyAt = nowMs() + 999999; }
+      sab: function (k) { doSab(k); }
     });
     if (!isHost()) Net.put(S.path + '/in/' + S.pid, { x: 0, y: 0, n: 0, k: '', a: '' });
   }
@@ -341,6 +345,9 @@
     if (typing(e)) return;
     if (S.screen !== 'game') return;
     if (e.code === 'Tab') { e.preventDefault(); if (S.box && S.box.r === 'imp') S.menu = !S.menu; return; }
+    if (S.menu && (e.code === 'Digit1' || e.code === 'Digit2' || e.code === 'Numpad1' || e.code === 'Numpad2')) {
+      e.preventDefault(); doSab(/1$/.test(e.code) ? 'lights' : 'reactor'); return;
+    }
     if (e.repeat) { keys[e.code] = true; return; }
     keys[e.code] = true;
     if (global.Tasks.isOpen()) return;
@@ -361,8 +368,17 @@
     sendCmd('use', n.id);
   }
 
+  function doSab(k) {
+    S.menu = false;
+    if (!(S.box && S.box.r === 'imp')) return;
+    S.lastSab = k;
+    sendCmd('sab', k);
+    S.sabReadyAt = nowMs() + 999999;
+  }
+
   function openTask(id, type) {
     var role = S.box && S.box.r;
+    if (role === 'imp') return;   // 임포스터는 일반 임무를 못 한다
     global.Tasks.open(type, layerEl).then(function (res) {
       if (res !== 'done') return;
       S.doneLocal[id] = true;
@@ -377,6 +393,17 @@
     var st = S.frameSt, me = st && st.p[S.pid];
     var ghost = !(me && me[2] === 1);
     Net.put(S.path + '/chat/' + nowMs() + '_' + S.pid, { p: S.pid, m: text, t: nowMs(), g: ghost });
+  }
+
+  /* 누가 죽였는지는 죽은 사람만 안다(처형 장면에 범인 색을 그리려고).
+     공개 상태(st)에 실으면 개발자 도구로 누구나 범인을 보게 되므로, 그 사람 봉투를
+     범인(k)을 넣어 다시 잠가 보낸다. */
+  function tellVictim(victim, killer) {
+    if (victim === S.pid) { if (S.box) S.box.k = killer; return; }
+    var box = S.boxes && S.boxes[victim], w = who()[victim];
+    if (!box || !w || !w.pub) return;
+    var nb = { r: box.r, t: box.t, m: box.m, k: killer };
+    Roles.seal(S.keys.priv, w.pub, nb).then(function (sealed) { Net.put(S.path + '/sec/' + victim, sealed); });
   }
 
   /* ── 방장 틱 ─────────────────────────────────────────── */
@@ -419,6 +446,7 @@
     ev = ev.concat(R.step(s, dt, inputs));
     ev.forEach(function (e) {
       if (e.type === 'meeting') Net.del(S.path + '/chat');
+      if (e.type === 'kill') tellVictim(e.pid, e.by);
       if (e.type === 'end') { backToLobby(); }
     });
     if (!S.state) return;
@@ -437,14 +465,17 @@
     var nowS = performance.now() / 1000, now = nowMs();
     var box = S.box, role = box ? box.r : null;
 
-    if (!host && !box && !S.boxBusy && !S.boxFailed && S.room.sec && S.room.sec[S.pid]) {
+    var mySec = !host && S.room.sec && S.room.sec[S.pid];
+    if (mySec && mySec.ct !== S.secCt && !S.boxBusy && !S.boxFailed) {
       var hostW = who()[meta().host];
       if (hostW && hostW.pub) {
         S.boxBusy = true;
-        Roles.open(S.keys.priv, hostW.pub, S.room.sec[S.pid]).then(function (b) {
+        var ct = mySec.ct;
+        Roles.open(S.keys.priv, hostW.pub, mySec).then(function (b) {
           S.boxBusy = false;
-          if (b) { S.box = b; roleBanner(); }
-          else { S.boxFailed = true; UI.toast('역할을 못 받았어요. 새로고침 후 다시 들어오세요.', 6000); }
+          S.secCt = ct;
+          if (b) { var first = !S.box; S.box = b; if (first) roleBanner(); }
+          else if (!S.box) { S.boxFailed = true; UI.toast('역할을 못 받았어요. 새로고침 후 다시 들어오세요.', 6000); }
         });
       }
     }
@@ -506,7 +537,9 @@
     if (S.prevSb && !sb) S.sabReadyAt = now + C.SAB_CD * 1000;
     S.prevSb = sb;
     if (S.prevPh === 'meeting' && st.ph === 'play') S.killReadyAt = now + C.KILL_CD * 1000;
-    if (S.killSentAt && now - S.killSentAt < 1500 && bodies.length > S.killBodies) { S.killReadyAt = now + C.KILL_CD * 1000; S.killSentAt = 0; }
+    if (S.killSentAt && now - S.killSentAt < 1500 && bodies.length > S.killBodies) { S.killReadyAt = now + C.KILL_CD * 1000; S.killSentAt = 0; S.impDone.kill = true; }
+    if (role === 'imp' && inVent) S.impDone.vent = true;
+    if (role === 'imp' && sb && sb.k === S.lastSab) S.impDone[sb.k] = true;
     var killCd, sabCd;
     if (host && S.state) {
       killCd = S.state.players[S.pid].killCd;
@@ -566,8 +599,11 @@
 
     /* 죽음 안내 */
     if (S.wasAlive && !alive && st.ph === 'play') {
+      global.Tasks.close();
+      var myColor = colorOf(S.pid);
+      global.Meeting.killScene(layerEl, myColor, function () { return S.box && S.box.k ? colorOf(S.box.k) : null; });
       S.banner = { title: '당신은 죽었습니다', sub: role === 'imp' ? '유령으로 사보타주는 계속 걸 수 있어요.' : '유령으로 남은 임무를 계속할 수 있어요.', color: '#cfd6e6' };
-      S.bannerUntil = now + 3000;
+      S.bannerUntil = now + 5500;
     }
     S.wasAlive = alive;
 
@@ -579,10 +615,15 @@
       players: others.concat([{ pid: S.pid, self: true, x: S.me.x, y: S.me.y, alive: alive, vent: inVent, color: colorOf(S.pid), name: nameOf(S.pid), red: role === 'imp' }])
     }); } catch (e) { if (global.console) console.error(e); }
 
-    var taskList = box ? box.t.map(function (id) {
+    var taskList = !box ? [] : role === 'imp' ? [
+      { text: '정전 일으키기 (Tab → 1)', done: !!S.impDone.lights },
+      { text: '서버 과열 일으키기 (Tab → 2)', done: !!S.impDone.reactor },
+      { text: '환풍구 타 보기 (환풍구 위에서 E)', done: !!S.impDone.vent },
+      { text: '직원 처치하기 (Q)', done: !!S.impDone.kill }
+    ] : box.t.map(function (id) {
       var o = M.byId(id), k = global.Tasks.kinds[o.type];
       return { text: o.room + ': ' + (k ? k.label : o.type), done: !myTasks[id] };
-    }) : [];
+    });
     var alert = null;
     if (sb && sb.k === 'lights') alert = { cls: 'lights', text: role === 'imp' ? '정전 중 — 직원들은 앞이 잘 안 보여요' : '정전! 창고 두꺼비집을 고치세요' };
     if (sb && sb.k === 'reactor') {

@@ -210,7 +210,7 @@
     v.alive = false;
     s.bodies.push({ pid: a, x: v.x, y: v.y });
     p.x = v.x; p.y = v.y; p.killCd = C.KILL_CD;
-    ev.push({ type: 'kill', pid: a });
+    ev.push({ type: 'kill', pid: a, by: pid });
     checkWin(s, ev);
   }
 
