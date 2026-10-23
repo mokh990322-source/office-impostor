@@ -19,8 +19,8 @@
     { name: '나 주희 아님', hex: '#66bb6a', face: 4 },
     { name: '서지훈남',    hex: '#26c6da', face: 5 },
     { name: '모몽가',     hex: '#5c6bc0', face: 6 },
-    { name: '치이카와',       hex: '#ab47bc', face: 7 },
-    { name: '누렁이',         hex: '#ec407a', face: 8 },
+    { name: '남이카와',       hex: '#ab47bc', face: 7 },
+    { name: '황누렁이',         hex: '#ec407a', face: 8 },
     /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
        사진은 나중에 받기로 함(2026-10-22). */
     { name: '호현견',         hex: '#8d6e63', face: 9 },
