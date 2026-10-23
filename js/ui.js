@@ -13,18 +13,18 @@
      규칙·저장 값이 어긋나니 뒤에 붙이기만 할 것.
      이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
   var COLORS = [
-    { name: 'NEW정균',    hex: '#ff5252', face: 1 },
-    { name: '박사장',       hex: '#ff8fd0', face: 2 },
-    { name: '스펀지송',       hex: '#ffee58', face: 3 },
-    { name: '나 주희 아님', hex: '#66bb6a', face: 4 },
-    { name: '서지훈남',    hex: '#26c6da', face: 5 },
-    { name: '모몽가',     hex: '#5c6bc0', face: 6 },
-    { name: '남이카와',       hex: '#ab47bc', face: 7 },
-    { name: '황누렁이',         hex: '#ec407a', face: 8 },
+    { name: 'NEW정균',    hex: '#ff5252', face: 1, crop: [0.5, 0.571, 0.723] },
+    { name: '박사장',       hex: '#ff8fd0', face: 2, crop: [0.505, 0.618, 0.701] },
+    { name: '스펀지송',       hex: '#ffee58', face: 3, crop: [0.502, 0.61, 0.765] },
+    { name: '나 주희 아님', hex: '#66bb6a', face: 4, crop: [0.474, 0.589, 0.691] },
+    { name: '서지훈남',    hex: '#26c6da', face: 5, crop: [0.442, 0.618, 0.803] },
+    { name: '모몽가',     hex: '#5c6bc0', face: 6, crop: [0.495, 0.68, 0.784] },
+    { name: '남이카와',       hex: '#ab47bc', face: 7, crop: [0.44, 0.606, 0.769] },
+    { name: '황누렁이',         hex: '#ec407a', face: 8, crop: [0.394, 0.606, 0.716] },
     /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
        사진은 나중에 받기로 함(2026-10-22). */
-    { name: '호현견',         hex: '#8d6e63', face: 9 },
-    { name: '선호합니다',         hex: '#c0ca33', face: 10 }
+    { name: '호현견',         hex: '#8d6e63', face: 9, crop: [0.373, 0.592, 0.473] },
+    { name: '선호합니다',         hex: '#c0ca33', face: 10, crop: [0.487, 0.515, 0.619] }
   ];
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
@@ -33,7 +33,7 @@
      img/face/<번호>.jpg 를 26px 로 줄여 두고 픽셀 그대로 키워 그린다
      (모코파크·퇴근의 계단과 같은 농담). 사진이 없거나 못 읽으면 그냥
      고글을 그린다. 사진 하나 빠졌다고 게임이 죽으면 안 된다. */
-  var FACE_PX = 26, faces = {}, faceListeners = [];
+  var FACE_PX = 26, FACE_V = '20261023', faces = {}, faceListeners = [];
   (function loadFaces() {
     if (typeof global.Image !== 'function') return;          // Node 시험
     COLORS.forEach(function (c, i) {
@@ -44,21 +44,26 @@
         faces[i] = { img: im, small: null };
         faceListeners.forEach(function (fn) { try { fn(i); } catch (e) { /* 무시 */ } });
       };
-      im.src = 'img/face/' + c.face + '.jpg';
+      im.src = 'img/face/' + c.face + '.jpg?v=' + FACE_V;   // 사진을 바꾸면 FACE_V 를 올린다(캐시된 옛 사진에 새 자르기 값이 적용되는 것 방지)
     });
   })();
 
-  /* 인물 사진은 얼굴이 위쪽에 온다. 높이의 38% 를 얼굴 중심으로 보고 자른다(모코파크와 같음). */
+  /* 사진마다 얼굴 자리가 다르다. COLORS[i].crop = [가운데 x, 가운데 y, 정사각형 한 변] (사진 가로 대비 비율).
+     눈이 정사각형 위쪽 40% 쯤 오도록 사진을 보고 하나씩 잡은 값이다(2026-10-23).
+     crop 이 없으면 옛 규칙(높이 38% 를 중심, 짧은 변의 78%)으로 자른다. */
   function faceCanvas(i) {
     var f = faces[i];
     if (!f) return null;
     if (f.small) return f.small;
     var cv = document.createElement('canvas');
     cv.width = FACE_PX; cv.height = FACE_PX;
-    var iw = f.img.naturalWidth, ih = f.img.naturalHeight;
-    var sq = Math.min(iw, ih) * 0.78, sx = (iw - sq) / 2, sy = ih * 0.38 - sq / 2;
-    if (sy < 0) sy = 0;
-    if (sy + sq > ih) sy = ih - sq;
+    var iw = f.img.naturalWidth, ih = f.img.naturalHeight, c = (COLORS[i] || {}).crop;
+    var sq, sx, sy;
+    if (c) { sq = c[2] * iw; sx = c[0] * iw - sq / 2; sy = c[1] * ih - sq / 2; }
+    else { sq = Math.min(iw, ih) * 0.78; sx = (iw - sq) / 2; sy = ih * 0.38 - sq / 2; }
+    sq = Math.min(sq, iw, ih);
+    sx = Math.max(0, Math.min(iw - sq, sx));
+    sy = Math.max(0, Math.min(ih - sq, sy));
     cv.getContext('2d').drawImage(f.img, sx, sy, sq, sq, 0, 0, FACE_PX, FACE_PX);
     f.small = cv;
     return cv;
