@@ -17,9 +17,22 @@
   function setText(node, key, v) { if (last[key] !== v) { last[key] = v; node.textContent = v; } }
   function show(node, key, on) { var v = on ? '' : 'none'; if (last[key] !== v) { last[key] = v; node.style.display = v; } }
 
+  /* 원작풍 둥근 아이콘 (직접 그린 SVG). 바탕 원 + 두꺼운 외곽선 + 단순한 그림. */
+  var ICONS = {
+    use: '<circle cx="50" cy="50" r="44" fill="#eef2f7" stroke="#0b0d12" stroke-width="6"/><path d="M38 70V40a6 6 0 0 1 12 0v18-24a6 6 0 0 1 12 0v24-18a6 6 0 0 1 11 0v26c0 12-8 20-20 20h-3c-7 0-12-3-16-9l-8-13a6 6 0 0 1 10-6z" fill="#ffd27a" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/>',
+    report: '<circle cx="50" cy="50" r="44" fill="#ff8a1e" stroke="#0b0d12" stroke-width="6"/><path d="M24 44h14l26-16v44L38 56H24z" fill="#eef2f7" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M72 40q8 10 0 20" fill="none" stroke="#0b0d12" stroke-width="5" stroke-linecap="round"/>',
+    kill: '<circle cx="50" cy="50" r="44" fill="#e5383b" stroke="#0b0d12" stroke-width="6"/><path d="M30 72l30-36 8 2-2 8-36 30z" fill="#eef2f7" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M62 34l10-10 6 6-10 10" fill="#7a4a24" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/>',
+    sab: '<circle cx="50" cy="50" r="44" fill="#8b4ee8" stroke="#0b0d12" stroke-width="6"/><path d="M50 22l26 48H24z" fill="#ffde3b" stroke="#0b0d12" stroke-width="5" stroke-linejoin="round"/><path d="M50 40v14" stroke="#0b0d12" stroke-width="6" stroke-linecap="round"/><circle cx="50" cy="62" r="3.5" fill="#0b0d12"/>'
+  };
+  function icon(cls) {
+    var wrap = document.createElement('div');
+    wrap.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true">' + ICONS[cls] + '</svg>';
+    return wrap.firstChild;
+  }
+
   function act(cls, label, key, onclick) {
-    var b = h('button', { class: 'act ' + cls, onclick: onclick }, [
-      h('span', { text: label }), h('small', { text: key })
+    var b = h('button', { class: 'act ' + cls, title: label + ' (' + key + ')', onclick: onclick }, [
+      icon(cls), h('span', { text: label }), h('small', { text: key })
     ]);
     b.cd = h('div', { class: 'cd', style: { display: 'none' } });
     b.appendChild(b.cd);
@@ -30,8 +43,7 @@
     root = rootEl; hd = handlers || {};
     UI.clear(root); last = {};
     el.top = h('div', { class: 'hud-top' }, [
-      h('div', { class: 'bar-label', text: '회사 업무 진행률' }),
-      el.barWrap = h('div', { class: 'bar' }, [el.bar = h('i')])
+      el.barWrap = h('div', { class: 'bar' }, [el.bar = h('i'), h('div', { class: 'bar-label', text: '전체 업무 진행' })])
     ]);
     el.left = h('div', { class: 'hud-left' }, [
       el.role = h('div', { class: 'role' }),
@@ -61,7 +73,7 @@
     show(b, key + 'show', o.show !== false);
     var dis = !o.on;
     if (last[key + 'dis'] !== dis) { last[key + 'dis'] = dis; b.disabled = dis; }
-    if (o.label !== undefined) setText(b.firstChild, key + 'label', o.label);
+    if (o.label !== undefined) setText(b.querySelector('span'), key + 'label', o.label);
     var cdTxt = o.cd > 0 ? String(Math.ceil(o.cd)) : '';
     show(b.cd, key + 'cdshow', !!cdTxt);
     setText(b.cd, key + 'cd', cdTxt);

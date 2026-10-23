@@ -31,8 +31,10 @@
     var join = h('button', { onclick: function () { var n = nm(); if (n) run(o.onJoin(n, code.value)); } }, ['들어가기']);
     code.addEventListener('keydown', function (e) { if (e.key === 'Enter') join.click(); });
 
-    root.appendChild(h('div', { class: 'page' }, [
+    var logo = h('div', { class: 'logo-beans' }, [0, 1, 4, 7, 5].map(function (c) { return UI.beanIcon(c, 46); }));
+    root.appendChild(h('div', { class: 'page space' }, [
       h('div', { class: 'card' }, [
+        logo,
         h('h1', { class: 'title' }, ['사무실 ', h('b', { text: '임포스터' })]),
         h('p', { class: 'sub', text: '우리 중에 일 안 하는 사람이 있다. 업무를 끝내거나, 범인을 찾아내세요.' }),
         h('div', { class: 'label', text: '내 이름' }),
@@ -79,13 +81,21 @@
       if (navigator.clipboard) navigator.clipboard.writeText(v.code).then(done, done); else done();
     } }, ['복사']);
 
-    root.appendChild(h('div', { class: 'page' }, [
+    /* 무대: 모인 사람이 한 줄로 서 있다 (원작의 탑승 대기 화면 느낌) */
+    var stage = h('div', { class: 'stage' }, v.who.map(function (w) {
+      return h('div', { class: 'slot' }, [
+        h('div', { class: 'stage-name' + (w.host ? ' host' : '') + (w.me ? ' me' : ''), text: w.name }),
+        UI.beanIcon(w.color, 54)
+      ]);
+    }));
+    root.appendChild(h('div', { class: 'page space' }, [
       h('div', { class: 'card' }, [
         h('div', { class: 'row', style: { justifyContent: 'space-between' } }, [
           h('div', {}, [h('div', { class: 'label', style: { margin: 0 }, text: '방 코드 — 동료에게 불러 주세요' }), h('div', { class: 'code', text: v.code })]),
           copy
         ]),
         h('div', { class: 'label', text: '모인 사람 ' + v.who.length + '명 (4~10명)' }),
+        stage,
         list,
         h('div', { class: 'label', text: '내 캐릭터' }),
         colors,

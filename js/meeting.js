@@ -27,14 +27,14 @@
     el.skip = h('button', { onclick: function () { if (hd.vote) hd.vote('skip'); } }, ['건너뛰기']);
     el.skipVoters = h('div', { class: 'skipvoters' });
     el.foot = h('div', { class: 'meet-foot' }, [el.skip, el.skipVoters, el.help = h('div', { class: 'hint' })]);
-    root = h('div', { class: 'meet' }, [
+    root = h('div', { class: 'meet' }, [h('div', { class: 'tablet' }, [
       h('div', { class: 'meet-head' }, [el.stage, el.time]),
       h('div', { class: 'meet-body' }, [
         el.cards,
         h('div', { class: 'chat' }, [el.log, el.note, h('div', { class: 'send' }, [el.input, el.sendBtn])])
       ]),
       el.foot
-    ]);
+    ])]);
     layer.appendChild(root);
   }
 
@@ -48,7 +48,7 @@
   function card(p, v) {
     var canVote = v.stage === 'vote' && v.meAlive && !v.meVoted && p.alive && p.pid !== v.me;
     var c = h('div', { class: 'pcard' + (p.alive ? '' : ' dead') + (canVote ? ' can' : '') }, [
-      UI.beanIcon(p.color, 44, { dead: !p.alive }),
+      UI.beanIcon(p.color, 52, { dead: !p.alive }),
       h('div', {}, [h('div', { class: 'nm', text: p.name + (p.pid === v.me ? ' (나)' : '') }),
         p.isBy ? h('div', { style: { fontSize: '12px' }, text: v.body ? '📢 신고함' : '🚨 회의 소집' }) : null]),
       p.voted && v.stage !== 'reveal' ? h('span', { class: 'tag', text: '투표함' }) : null
@@ -66,8 +66,8 @@
       c.addEventListener('click', function () { pick = p.pid; last.cards = null; render(view); });
       if (pick === p.pid) {
         c.appendChild(h('div', { class: 'confirm' }, [
-          h('button', { class: 'danger', onclick: function (e) { e.stopPropagation(); pick = null; if (hd.vote) hd.vote(p.pid); } }, ['투표']),
-          h('button', { onclick: function (e) { e.stopPropagation(); pick = null; last.cards = null; render(view); } }, ['취소'])
+          h('button', { class: 'danger', title: '투표', onclick: function (e) { e.stopPropagation(); pick = null; if (hd.vote) hd.vote(p.pid); } }, ['✔']),
+          h('button', { title: '취소', onclick: function (e) { e.stopPropagation(); pick = null; last.cards = null; render(view); } }, ['✖'])
         ]));
       }
     }
@@ -183,13 +183,13 @@
   };
   function result(layerEl, o) {
     hideResult();
-    resultEl = h('div', { class: 'result' }, [
+    resultEl = h('div', { class: 'result space' }, [
+      o.mine ? h('div', { class: 'mine', style: { color: o.won ? '#5ff0ff' : '#ff5b5b' }, text: o.won ? '승리' : '패배' }) : null,
       h('h1', { class: o.side, text: o.side === 'crew' ? '직원 승리' : '임포스터 승리' }),
-      h('p', { style: { fontSize: '22px', margin: 0 }, text: WHY[o.why] || '' }),
-      o.mine ? h('p', { style: { fontSize: '18px', color: o.won ? '#5be07a' : '#ff8c8c' }, text: o.won ? '이겼어요!' : '졌어요…' }) : null,
+      h('div', { class: 'why', text: WHY[o.why] || '' }),
       h('div', { class: 'label', text: '임포스터였던 사람' }),
       h('div', { class: 'imps' }, o.imps.map(function (p) {
-        return h('div', {}, [UI.beanIcon(p.color, 64), h('b', { text: p.name })]);
+        return h('div', {}, [h('span', { text: p.name }), UI.beanIcon(p.color, 96)]);
       })),
       h('p', { class: 'hint', text: '잠시 뒤 대기실로 돌아가요.' })
     ]);

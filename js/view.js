@@ -30,7 +30,7 @@
   function box(c, x, y, w, hh, fill, stroke, r) {
     UI.rr(c, x, y, w, hh, r || 4);
     c.fillStyle = fill; c.fill();
-    if (stroke) { c.lineWidth = 2; c.strokeStyle = stroke; c.stroke(); }
+    if (stroke) { c.lineWidth = 3.5; c.lineJoin = 'round'; c.strokeStyle = stroke; c.stroke(); }
   }
 
   function furniture(c) {
@@ -121,6 +121,19 @@
         }
       }
     }
+    /* 벽과 바닥이 만나는 선을 굵게 (만화풍 외곽선) */
+    c.strokeStyle = '#0b0d12'; c.lineWidth = 4; c.lineCap = 'square';
+    c.beginPath();
+    for (y = 0; y < M.H; y++) {
+      for (x = 0; x < M.W; x++) {
+        if (!M.solid(x, y) || !M.opaque(x, y)) continue;
+        if (!M.solid(x, y + 1)) { c.moveTo(x * T, (y + 1) * T); c.lineTo((x + 1) * T, (y + 1) * T); }
+        if (!M.solid(x, y - 1)) { c.moveTo(x * T, y * T); c.lineTo((x + 1) * T, y * T); }
+        if (!M.solid(x + 1, y)) { c.moveTo((x + 1) * T, y * T); c.lineTo((x + 1) * T, (y + 1) * T); }
+        if (!M.solid(x - 1, y)) { c.moveTo(x * T, y * T); c.lineTo(x * T, (y + 1) * T); }
+      }
+    }
+    c.stroke();
     furniture(c);
     /* 방 이름 */
     c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -235,12 +248,12 @@
       var moving = Math.abs(dx) + Math.abs(dy) > 0.4, flip = mem.flip;
       mem.x = p.x; mem.y = p.y;
       if (p.vent) { ctx.save(); ctx.globalAlpha = 0.35; }
-      UI.drawBean(ctx, p.x, p.y + 14, 1, p.color, { flip: flip, ghost: !p.alive, bob: moving ? Math.abs(Math.sin(t * 14)) * 2.5 : 0 });
+      UI.drawBean(ctx, p.x, p.y + 14, 1, p.color, { flip: flip, ghost: !p.alive, bob: moving ? Math.abs(Math.sin(t * 14)) * 1.5 : 0, walk: moving && p.alive ? t * 14 : null });
       if (p.vent) ctx.restore();
       ctx.save();
-      ctx.font = '700 13px "Pretendard","Malgun Gothic",sans-serif';
-      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-      ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx.font = '15px "Black Han Sans","Do Hyeon","Malgun Gothic",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.lineJoin = 'round';
+      ctx.lineWidth = 4.5; ctx.strokeStyle = '#0b0d12';
       ctx.fillStyle = p.red ? '#ff5b5b' : '#fff';
       if (!p.alive) ctx.globalAlpha = 0.6;
       ctx.strokeText(p.name, p.x, p.y - 24); ctx.fillText(p.name, p.x, p.y - 24);

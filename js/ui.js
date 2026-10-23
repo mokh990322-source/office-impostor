@@ -116,7 +116,8 @@
   }
 
   /* 콩 캐릭터. (x, y) 는 발 가운데. s 는 배율(1 이면 키 약 34px).
-     o.flip: 왼쪽을 봄, o.ghost: 반투명 + 꼬리, o.bob: 통통 튀는 높이(px) */
+     o.flip: 왼쪽을 봄, o.ghost: 반투명 + 꼬리, o.bob: 통통 튀는 높이(px),
+     o.walk: 걷는 위상(라디안). 있으면 두 다리가 번갈아 앞뒤로 움직인다. */
   function drawBean(ctx, x, y, s, color, o) {
     o = o || {};
     var c = hex(color), dark = shade(c, 0.62), line = '#151821';
@@ -125,7 +126,7 @@
     if (o.flip) ctx.scale(-1, 1);
     ctx.scale(s, s);
     if (o.ghost) ctx.globalAlpha *= 0.45;
-    ctx.lineWidth = 2.4; ctx.strokeStyle = line;
+    ctx.lineWidth = 3.4; ctx.strokeStyle = line; ctx.lineJoin = 'round';
 
     /* 배낭 */
     ctx.fillStyle = dark;
@@ -142,13 +143,20 @@
       ctx.quadraticCurveTo(-8, -4, -11, -14);
       ctx.closePath(); ctx.fill(); ctx.stroke();
     } else {
-      /* 다리 */
+      /* 다리 — 걸으면 번갈아 앞뒤로 */
+      var sw = o.walk !== undefined && o.walk !== null ? Math.sin(o.walk) : 0;
+      var up1 = sw > 0 ? sw * 2.5 : 0, up2 = sw < 0 ? -sw * 2.5 : 0;
       ctx.fillStyle = dark;
-      rr(ctx, -10, -8, 8, 8, 3); ctx.fill(); ctx.stroke();
-      rr(ctx, 2, -8, 8, 8, 3); ctx.fill(); ctx.stroke();
+      rr(ctx, -10 + sw * 3, -9 - up1, 8, 9, 3); ctx.fill(); ctx.stroke();
+      rr(ctx, 2 - sw * 3, -9 - up2, 8, 9, 3); ctx.fill(); ctx.stroke();
       /* 몸 */
       ctx.fillStyle = c;
       rr(ctx, -11, -34, 22, 29, 10); ctx.fill(); ctx.stroke();
+      /* 몸 그늘 (만화풍 음영) */
+      ctx.save(); rr(ctx, -11, -34, 22, 29, 10); ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(-11, -14, 22, 10);
+      ctx.restore();
+      rr(ctx, -11, -34, 22, 29, 10); ctx.stroke();
     }
     var fc = faceCanvas(color);
     if (fc) {
