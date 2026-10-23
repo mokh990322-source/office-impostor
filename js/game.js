@@ -147,7 +147,7 @@
   function onRoom(state) {
     S.room = state || {};
     S.lastEventMs = nowMs();
-    if (!LOCAL) setNet('ok', '연결됨');
+    if (!LOCAL) setNet('ok', global.LAN_MODE ? '사내망 연결됨' : '연결됨');
     var w = who(), k;
     for (k in w) {
       if (!Object.prototype.hasOwnProperty.call(w, k) || !w[k]) continue;
@@ -477,9 +477,10 @@
         if (alive) S.me = G.move(M, S.me.x, S.me.y, dx, dy, C.R);
         else S.me = { x: S.me.x + dx, y: S.me.y + dy };
       }
-      var err = dist(S.me, server);
-      if (inVent || !playing || err > 120) S.me = { x: server.x, y: server.y };
-      else if (!(inp.x || inp.y) || err > 50) S.me = global.Interp.correct(S.me, server, dt);
+      var moving = !!(inp.x || inp.y);
+      S.stillFor = moving ? 0 : (S.stillFor || 0) + dt;
+      if (inVent || !playing) S.me = { x: server.x, y: server.y };
+      else S.me = global.Interp.reconcile(S.me, server, moving, S.stillFor, dt);
     }
 
     /* 남들 위치 */

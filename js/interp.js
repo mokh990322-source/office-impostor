@@ -152,6 +152,28 @@
     return { x: local.x + dx * k, y: local.y + dy * k };
   }
 
+  /* ── 내 캐릭터 위치 맞추기 (사무실 임포스터에서 추가) ────────
+     방장 값은 왕복(Firebase 두 번)만큼 늦게 온다. 걷는 동안 그 값과 비교하면
+     내 위치가 항상 "앞서" 보여서 계속 뒤로 당기게 된다 → 버벅임(2026-10-22 실제 플레이 피드백).
+     방장은 같은 충돌 코드로 계산하므로 내 예측은 사실 거의 맞다. 그래서:
+       - 걷는 중: 지연으로 설명되는 차이(RECON_WALK 이하)는 건드리지 않는다.
+         그보다 크면(벽에 막힘 등) 천천히 맞춘다.
+       - 멈춘 뒤: 방장 값이 따라올 시간(RECON_SETTLE)을 기다렸다가 맞춘다.
+       - 아주 크면(RECON_SNAP, 킬·환풍구·재배치) 바로 방장 값으로. */
+  var RECON_SNAP = 200, RECON_WALK = 110, RECON_SETTLE = 0.6, RECON_SLOW = 3.0;
+
+  function reconcile(me, server, moving, stillFor, dt) {
+    var dx = server.x - me.x, dy = server.y - me.y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d > RECON_SNAP) return { x: server.x, y: server.y };
+    if (moving) {
+      if (d <= RECON_WALK) return me;
+      var ks = 1 - Math.exp(-RECON_SLOW * dt);
+      return { x: me.x + dx * ks, y: me.y + dy * ks };
+    }
+    if (stillFor < RECON_SETTLE || d < 0.5) return me;
+    return correct(me, server, dt);
+  }
+
   global.Interp = {
     DELAY: DELAY,
     DELAY_MIN: DELAY_MIN,
@@ -163,6 +185,7 @@
     lerp: lerp,
     between: between,
     correct: correct,
+    reconcile: reconcile,
     Buffer: Buffer
   };
 })(window);
