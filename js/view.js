@@ -235,7 +235,6 @@
     var R = f.vision;
     function seen(x, y) { return !isFinite(R) || G.canSee(M, f.me.x, f.me.y, x, y, R + 20); }
 
-    f.bodies.forEach(function (b) { if (seen(b.x, b.y)) UI.drawBody(ctx, b.x, b.y + 14, 1, b.color); });
 
     var list = f.players.slice().sort(function (a, b) { return a.y - b.y; });
     list.forEach(function (p) {
@@ -259,6 +258,10 @@
       ctx.strokeText(p.name, p.x, p.y - 24); ctx.fillText(p.name, p.x, p.y - 24);
       ctx.restore();
     });
+
+    /* 시체는 사람 위에 그린다. 킬하면 임포스터가 시체 자리로 옮겨지는데,
+       밑에 그리면 임포스터 몸에 통째로 가려져 안 보인다. */
+    f.bodies.forEach(function (b) { if (seen(b.x, b.y)) UI.drawBody(ctx, b.x, b.y + 16, 1.3, b.color); });
 
     /* 어둠 */
     if (isFinite(R)) {
