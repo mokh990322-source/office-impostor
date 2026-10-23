@@ -12,28 +12,37 @@
      번호(0~9)는 Firebase who/<pid>/color 에 그대로 실린다. 순서를 바꾸면
      규칙·저장 값이 어긋나니 뒤에 붙이기만 할 것.
      이름과 색은 모코파크 js/sprite.js 의 CHARS 와 같다. */
+  /* eyes = 사진 속 두 눈 위치 [왼눈 x, 왼눈 y, 오른눈 x, 오른눈 y] (사진 가로·세로 대비 비율).
+     눈금 그린 사진을 보고 하나씩 잰 값(2026-10-23). 이 두 점을 기준으로 모든 얼굴을
+     같은 크기·같은 눈높이·수평으로 맞춰 바이저에 넣는다.
+     4번(모자)·6번(그늘)은 눈이 안 보여 코·입으로 짐작, 9번(옆얼굴)은 머리가 가운데 오게 잡은 가상의 눈. */
   var COLORS = [
-    { name: 'NEW정균',    hex: '#ff5252', face: 1, crop: [0.5, 0.571, 0.723] },
-    { name: '박사장',       hex: '#ff8fd0', face: 2, crop: [0.505, 0.618, 0.701] },
-    { name: '스펀지송',       hex: '#ffee58', face: 3, crop: [0.502, 0.61, 0.765] },
-    { name: '나 주희 아님', hex: '#66bb6a', face: 4, crop: [0.474, 0.589, 0.691] },
-    { name: '서지훈남',    hex: '#26c6da', face: 5, crop: [0.442, 0.618, 0.803] },
-    { name: '모몽가',     hex: '#5c6bc0', face: 6, crop: [0.495, 0.68, 0.784] },
-    { name: '남이카와',       hex: '#ab47bc', face: 7, crop: [0.44, 0.606, 0.769] },
-    { name: '황누렁이',         hex: '#ec407a', face: 8, crop: [0.394, 0.606, 0.716] },
-    /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다.
-       사진은 나중에 받기로 함(2026-10-22). */
-    { name: '호현견',         hex: '#8d6e63', face: 9, crop: [0.373, 0.592, 0.473] },
-    { name: '선호합니다',         hex: '#c0ca33', face: 10, crop: [0.487, 0.515, 0.619] }
+    { name: 'NEW정균',    hex: '#ff5252', face: 1, eyes: [0.37, 0.51, 0.70, 0.505] },
+    { name: '박사장',       hex: '#ff8fd0', face: 2, eyes: [0.455, 0.572, 0.82, 0.575] },
+    { name: '스펀지송',       hex: '#ffee58', face: 3, eyes: [0.32, 0.49, 0.684, 0.49] },
+    { name: '나 주희 아님', hex: '#66bb6a', face: 4, eyes: [0.285, 0.53, 0.575, 0.53] },
+    { name: '서지훈남',    hex: '#26c6da', face: 5, eyes: [0.206, 0.535, 0.56, 0.503] },
+    { name: '모몽가',     hex: '#5c6bc0', face: 6, eyes: [0.26, 0.50, 0.61, 0.51] },
+    { name: '남이카와',       hex: '#ab47bc', face: 7, eyes: [0.378, 0.535, 0.73, 0.535] },
+    { name: '황누렁이',         hex: '#ec407a', face: 8, eyes: [0.283, 0.54, 0.646, 0.565] },
+    /* 9·10번: 새로 오신 두 분. 사진은 img/face/9.jpg, 10.jpg — 파일이 없으면 고글로 그린다. */
+    { name: '호현견',         hex: '#8d6e63', face: 9, eyes: [0.29, 0.47, 0.55, 0.47] },
+    { name: '선호합니다',         hex: '#c0ca33', face: 10, eyes: [0.376, 0.47, 0.677, 0.475] }
   ];
+
+  /* 콩의 바이저(유리창). 원작처럼 몸 앞쪽으로 살짝 튀어나온 넓은 창이고, 얼굴이 보이도록
+     게임 원래 고글보다 크게 잡았다. 로컬 단위(콩 키 약 34). */
+  var VISOR = { x: -6.5, y: -32, w: 20, h: 16, r: 6.5 };
 
   function hex(c) { return (COLORS[c] || COLORS[0]).hex; }
 
   /* ── 실사 얼굴 ────────────────────────────────────────────
-     img/face/<번호>.jpg 를 26px 로 줄여 두고 픽셀 그대로 키워 그린다
-     (모코파크·퇴근의 계단과 같은 농담). 사진이 없거나 못 읽으면 그냥
-     고글을 그린다. 사진 하나 빠졌다고 게임이 죽으면 안 된다. */
-  var FACE_PX = 26, FACE_V = '20261023', faces = {}, faceListeners = [];
+     img/face/<번호>.jpg 를 바이저 비율의 작은 그림(FACE_W×FACE_H)으로 한 번 만들어 두고
+     매번 그걸 바이저에 그린다. 사진이 없거나 못 읽으면 그냥 고글을 그린다.
+     사진 하나 빠졌다고 게임이 죽으면 안 된다. */
+  var FACE_W = 98, FACE_H = 78, FACE_V = '20261023', faces = {}, faceListeners = [];
+  var EYE_GAP = 0.35;   // 두 눈 사이 = 바이저 가로 × 이 값 (이마부터 턱까지 들어가는 크기)
+  var EYE_Y = 0.08;     // 눈높이 = 바이저 가운데에서 바이저 세로 × 이 값만큼 위
   (function loadFaces() {
     if (typeof global.Image !== 'function') return;          // Node 시험
     COLORS.forEach(function (c, i) {
@@ -48,25 +57,51 @@
     });
   })();
 
-  /* 사진마다 얼굴 자리가 다르다. COLORS[i].crop = [가운데 x, 가운데 y, 정사각형 한 변] (사진 가로 대비 비율).
-     눈이 정사각형 위쪽 40% 쯤 오도록 사진을 보고 하나씩 잡은 값이다(2026-10-23).
-     crop 이 없으면 옛 규칙(높이 38% 를 중심, 짧은 변의 78%)으로 자른다. */
+  /* 바이저에 넣을 얼굴 그림. 두 눈(COLORS[i].eyes)을 기준으로 크기·높이·기울기를 맞추고,
+     사진이 바이저보다 작아 비는 곳은 사진 테두리 평균색으로 채운다.
+     사진 끝이 경계선으로 보이지 않게 가장자리를 투명하게 녹여서 얹는다. */
   function faceCanvas(i) {
     var f = faces[i];
     if (!f) return null;
     if (f.small) return f.small;
+    var im = f.img, iw = im.naturalWidth, ih = im.naturalHeight;
+    var e = (COLORS[i] || {}).eyes || [0.35, 0.45, 0.65, 0.45];
+
+    /* 가장자리를 녹인 사진 사본 + 테두리 평균색 */
+    var sc = document.createElement('canvas'); sc.width = iw; sc.height = ih;
+    var sg = sc.getContext('2d'), fe = Math.round(Math.min(iw, ih) * 0.12);
+    sg.drawImage(im, 0, 0);
+    var edge = edgeColor(sg, iw, ih);
+    sg.globalCompositeOperation = 'destination-in';
+    var gx = sg.createLinearGradient(0, 0, iw, 0);
+    gx.addColorStop(0, 'rgba(0,0,0,0)'); gx.addColorStop(fe / iw, '#000'); gx.addColorStop(1 - fe / iw, '#000'); gx.addColorStop(1, 'rgba(0,0,0,0)');
+    sg.fillStyle = gx; sg.fillRect(0, 0, iw, ih);
+    var gy = sg.createLinearGradient(0, 0, 0, ih);
+    gy.addColorStop(0, 'rgba(0,0,0,0)'); gy.addColorStop(fe / ih, '#000'); gy.addColorStop(1 - fe / ih, '#000'); gy.addColorStop(1, 'rgba(0,0,0,0)');
+    sg.fillStyle = gy; sg.fillRect(0, 0, iw, ih);
+
     var cv = document.createElement('canvas');
-    cv.width = FACE_PX; cv.height = FACE_PX;
-    var iw = f.img.naturalWidth, ih = f.img.naturalHeight, c = (COLORS[i] || {}).crop;
-    var sq, sx, sy;
-    if (c) { sq = c[2] * iw; sx = c[0] * iw - sq / 2; sy = c[1] * ih - sq / 2; }
-    else { sq = Math.min(iw, ih) * 0.78; sx = (iw - sq) / 2; sy = ih * 0.38 - sq / 2; }
-    sq = Math.min(sq, iw, ih);
-    sx = Math.max(0, Math.min(iw - sq, sx));
-    sy = Math.max(0, Math.min(ih - sq, sy));
-    cv.getContext('2d').drawImage(f.img, sx, sy, sq, sq, 0, 0, FACE_PX, FACE_PX);
+    cv.width = FACE_W; cv.height = FACE_H;
+    var g = cv.getContext('2d');
+    g.fillStyle = edge; g.fillRect(0, 0, FACE_W, FACE_H);
+    var lx = e[0] * iw, ly = e[1] * ih, rx = e[2] * iw, ry = e[3] * ih;
+    var d = Math.hypot(rx - lx, ry - ly), ang = Math.atan2(ry - ly, rx - lx), k = EYE_GAP * FACE_W / d;
+    g.imageSmoothingQuality = 'high';
+    g.filter = 'contrast(1.1) brightness(1.05)';
+    g.translate(FACE_W / 2, FACE_H / 2 - EYE_Y * FACE_H); g.rotate(-ang); g.scale(k, k);
+    g.drawImage(sc, -(lx + rx) / 2, -(ly + ry) / 2);
     f.small = cv;
     return cv;
+  }
+  function edgeColor(g, w, h) {
+    var c = document.createElement('canvas'); c.width = 10; c.height = 10;
+    var cg = c.getContext('2d'); cg.drawImage(g.canvas, 0, 0, w, h, 0, 0, 10, 10);
+    var px = cg.getImageData(0, 0, 10, 10).data, r = 0, gr = 0, b = 0, n = 0;
+    for (var y = 0; y < 10; y++) for (var x = 0; x < 10; x++) {
+      if (x > 0 && x < 9 && y > 0 && y < 9) continue;
+      var o = (y * 10 + x) * 4; r += px[o]; gr += px[o + 1]; b += px[o + 2]; n++;
+    }
+    return 'rgb(' + Math.round(r / n) + ',' + Math.round(gr / n) + ',' + Math.round(b / n) + ')';
   }
   function onFaceLoad(fn) { faceListeners.push(fn); }
 
@@ -165,17 +200,20 @@
     }
     var fc = faceCanvas(color);
     if (fc) {
-      /* 고글 자리에 얼굴 사진. 몸을 뒤집어도 얼굴은 뒤집지 않는다(사진이 거울상이 되면 어색하다). */
-      ctx.fillStyle = '#9fdcf3';
-      rr(ctx, -5, -33, 19, 19, 6); ctx.fill(); ctx.stroke();
+      /* 바이저에 얼굴 사진. 몸을 뒤집어도 얼굴은 뒤집지 않는다(사진이 거울상이 되면 어색하다). */
+      var V = VISOR, vcx = V.x + V.w / 2;
       ctx.save();
-      rr(ctx, -4, -32, 17, 17, 5); ctx.clip();
-      if (o.flip) { ctx.translate(4.5, 0); ctx.scale(-1, 1); ctx.translate(-4.5, 0); }
-      var sm = ctx.imageSmoothingEnabled;
-      ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(fc, -4, -32, 17, 17);
-      ctx.imageSmoothingEnabled = sm;
+      rr(ctx, V.x, V.y, V.w, V.h, V.r); ctx.fillStyle = '#9fdcf3'; ctx.fill(); ctx.clip();
+      if (o.flip) { ctx.translate(vcx, 0); ctx.scale(-1, 1); ctx.translate(-vcx, 0); }
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(fc, V.x, V.y, V.w, V.h);
+      /* 유리 느낌: 살짝 푸른 막 + 반사광 */
+      ctx.fillStyle = 'rgba(159,220,243,0.16)'; ctx.fillRect(V.x, V.y, V.w, V.h);
       ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      rr(ctx, V.x + V.w - 6, V.y + 1.3, 3.6, 1.4, 0.7); ctx.fill();
+      /* 바이저 테는 몸 테두리보다 얇게(두꺼우면 얼굴 가장자리를 가린다) */
+      ctx.save(); ctx.lineWidth = 2.2; rr(ctx, V.x, V.y, V.w, V.h, V.r); ctx.stroke(); ctx.restore();
     } else {
       /* 고글 */
       ctx.fillStyle = '#9fdcf3';
